@@ -17,9 +17,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'corsheaders',
-    'apps.usuario',
-    'apps.producto',
-    'apps.categoria'
+    'apps.usuarios',
+    'apps.productos',
+    'apps.categorias'
     
 ]
 
@@ -32,6 +32,9 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# Modelo de usuario personalizado
+AUTH_USER_MODEL = 'usuarios.Usuario'
 
 ROOT_URLCONF = 'config.urls'
 
@@ -87,6 +90,7 @@ TIME_ZONE = config('TIME_ZONE', default='America/La_Paz')
 USE_I18N = True
 
 USE_TZ = True
+
 
 STATIC_URL = 'static/'
 

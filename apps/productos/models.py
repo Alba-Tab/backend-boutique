@@ -3,7 +3,7 @@ from apps.categorias.models import Categoria
 class Producto (models.Model):
     nombre = models.CharField(max_length=60)
     descripcion =  models.CharField(max_length=120)
-    precio = models.IntegerField()
-    stock = models.IntegerField()
+    precio = models.IntegerField(default=0)
+    stock = models.IntegerField(default=0)
     categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE,related_name='categorias', null=True,blank=True)
     

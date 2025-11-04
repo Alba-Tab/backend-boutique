@@ -1,10 +1,5 @@
-
-
-
 from django.db import models
-
 from apps.venta.models import Venta
-
 
 class CuotaCredito(models.Model):
     """
@@ -42,7 +37,7 @@ class CuotaCredito(models.Model):
 
     def __str__(self):
         return f"Cuota {self.numero_cuota}/{self.venta.plazo_meses} - Venta #{self.venta.id}"
-
+    
     @property
     def esta_vencida(self):
         """Verifica si la cuota está vencida"""

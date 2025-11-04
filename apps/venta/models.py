@@ -3,27 +3,24 @@ from django.db import models
 from apps.usuarios.models import Usuario
 from apps.producto_variante.models import VarianteProducto
 
+TIPO_PAGO_CHOICES = [
+    ('contado', 'Contado'),
+    ('credito', 'Crédito'),
+]
+
+ESTADO_PAGO_CHOICES = [
+    ('pendiente', 'Pendiente'),
+    ('parcial', 'Parcial'),
+    ('pagado', 'Pagado'),
+]
 
 class Venta(models.Model):
-
-    TIPO_PAGO_CHOICES = [
-        ('contado', 'Contado'),
-        ('credito', 'Crédito'),
-    ]
-
-    ESTADO_PAGO_CHOICES = [
-        ('pendiente', 'Pendiente'),
-        ('parcial', 'Parcial'),
-        ('pagado', 'Pagado'),
-    ]
-
-    # Relaciones
     cliente = models.ForeignKey(
         Usuario,
-        on_delete=models.PROTECT,  # No borrar si tiene ventas
+        on_delete=models.PROTECT,  
         related_name='ventas',
-        null=True,      # ⬅️ Puede ser NULL (sin cliente)
-        blank=True      # ⬅️ Puede estar vacío
+        null=True,
+        blank=True
     )
 
     # Información básica
@@ -82,7 +79,8 @@ class Venta(models.Model):
         ]
 
     def __str__(self):
-        return f"Venta #{self.id} - {self.cliente.email} - {self.get_tipo_pago_display()}"
+        cliente_info = self.cliente.email if self.cliente else "Sin cliente"
+        return f"Venta #{self.id} - {cliente_info} - {self.get_tipo_pago_display()}"
 
     def save(self, *args, **kwargs):
         """Validar campos de crédito"""
@@ -90,6 +88,31 @@ class Venta(models.Model):
             if not all([self.interes, self.plazo_meses, self.cuota_mensual]):
                 raise ValueError("Ventas a crédito requieren interés, plazo y cuota mensual")
         super().save(*args, **kwargs)
+    
+    def calcular_total(self):
+        """Recalcula el total de la venta basándose en los detalles"""
+        from django.db.models import Sum
+        
+        # Sumar todos los subtotales de los detalles
+        subtotal = self.detalles.aggregate(
+            total=Sum('subtotal')
+        )['total'] or 0
+        
+        self.total = subtotal
+        
+        # Si es crédito, calcular total con interés
+        if self.tipo_pago == 'credito' and self.interes:
+            self.total_con_interes = subtotal * (1 + self.interes / 100)
+            
+            # Calcular cuota mensual si hay plazo
+            if self.plazo_meses:
+                self.cuota_mensual = self.total_con_interes / self.plazo_meses
+        else:
+            self.total_con_interes = None
+            self.cuota_mensual = None
+        
+        self.save()
+        return self.total
 
 
 class DetalleVenta(models.Model):

@@ -53,7 +53,7 @@ INSTALLED_APPS = [
     'apps.cuota',
     'apps.pago',
     'apps.venta',
-    
+    'apps.reports',
 ]
 
 MIDDLEWARE = [

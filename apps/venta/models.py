@@ -120,15 +120,22 @@ class DetalleVenta(models.Model):
 
     # Snapshot de datos (por si cambian después)
     producto_nombre = models.CharField(max_length=60)
-    talla = models.CharField(max_length=5)
-    color = models.CharField(max_length=30)
+    talla = models.CharField(max_length=5, blank=True, null=True)
+    color = models.CharField(max_length=30, blank=True, null=True)
 
     class Meta:
         verbose_name = 'Detalle de Venta'
         verbose_name_plural = 'Detalles de Venta'
 
     def __str__(self):
-        return f"{self.producto_nombre} ({self.talla}-{self.color}) x{self.cantidad}"
+        detalles = []
+        if self.talla:
+            detalles.append(self.talla)
+        if self.color:
+            detalles.append(self.color)
+
+        detalle_str = f" ({'-'.join(detalles)})" if detalles else ""
+        return f"{self.producto_nombre}{detalle_str} x{self.cantidad}"
 
     def save(self, *args, **kwargs):
         """Auto-calcular subtotal"""

@@ -21,6 +21,7 @@ AWS_S3_FILE_OVERWRITE = False
 #AWS_DEFAULT_ACL = 'public-read'
 AWS_QUERYSTRING_AUTH = False
 MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
+ALLOWED_HOSTS = ['*']
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
@@ -46,6 +47,10 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'storages',
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
+    'django_filters',
     'apps.usuarios',
     'apps.productos',
     'apps.categorias',
@@ -149,3 +154,19 @@ if not isinstance(default_storage, S3Boto3Storage):
     default_storage._wrapped = S3Boto3Storage()
 
 print(f"🧪 AFTER OVERRIDE: {default_storage.__class__.__name__}")
+
+# Configuración de REST Framework
+from datetime import timedelta
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=5),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+}

@@ -4,7 +4,7 @@ class Producto (models.Model):
     nombre = models.CharField(max_length=60)
     descripcion =  models.CharField(max_length=120)
     precio_base = models.IntegerField(default=0)
-    marca = models.CharField(max_length=30, null=True, blank=True),
+    marca = models.CharField(max_length=30, null=True, blank=True)
     genero = models.CharField(max_length=10, choices=[
         ('Hombre', 'Hombre'),
         ('Mujer', 'Mujer'),

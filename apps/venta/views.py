@@ -171,3 +171,12 @@ class VentaViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+    # @action(detail=True, methods=['get'])
+    # def detalles(self, request, pk=None):
+    #     """GET /api/ventas/{id}/detalles/"""
+    #     venta = self.get_object()
+
+    #     detalles = venta.detalles.all()
+    #     serializer = VentaDetailSerializer(detalles, many=True)
+
+    #     return Response(serializer.data)

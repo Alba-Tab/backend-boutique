@@ -19,6 +19,16 @@ class Pago(models.Model):
         on_delete=models.CASCADE,
         related_name='pagos'
     )
+    
+    # Relación opcional con cuota (para pagos a crédito)
+    cuota = models.ForeignKey(
+        'cuota.CuotaCredito',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='pagos',
+        help_text="Cuota específica que se está pagando (opcional)"
+    )
 
     # Información del pago
     fecha_pago = models.DateTimeField(auto_now_add=True)
@@ -37,4 +47,5 @@ class Pago(models.Model):
         ordering = ['-fecha_pago']
 
     def __str__(self):
-        return f"Pago #{self.id} - Venta #{self.venta.id} - Bs.{self.monto_pagado}"
+        cuota_info = f" - Cuota {self.cuota.numero_cuota}" if self.cuota else ""
+        return f"Pago #{self.id} - Venta #{self.venta.id}{cuota_info} - Bs.{self.monto_pagado}"

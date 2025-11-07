@@ -7,81 +7,79 @@ from apps.venta.models import Venta
 
 
 class PagoService:
-    """
-    Servicio para manejar registros de pagos y actualizar estados
-    """
-
     @staticmethod
     @transaction.atomic
-    def registrar_pago(venta_id, monto_pagado, metodo_pago, referencia_pago=None):
-        """
-        Registra un pago y actualiza el estado de la venta
-
-        Args:
-            venta_id (int): ID de la venta
-            monto_pagado (Decimal): Monto del pago
-            metodo_pago (str): Método de pago ('efectivo', 'tarjeta', 'qr')
-            referencia_pago (str): Referencia opcional del pago
-
-        Returns:
-            Pago: Instancia del pago creado
-
-        Raises:
-            ValueError: Si hay errores de validación
-        """
-
-        # ========================================
-        # 1. OBTENER VENTA
-        # ========================================
+    def registrar_pago(venta_id, monto_pagado, metodo_pago, referencia_pago=None, cuota_id=None):
+    
+        # Registra un pago y actualiza el estado de la venta
+        
         try:
             venta = Venta.objects.select_for_update().get(id=venta_id)
         except Venta.DoesNotExist:
             raise ValueError(f"Venta con ID {venta_id} no existe")
 
-        # ========================================
-        # 2. VALIDAR MONTO
-        # ========================================
         monto_pagado = Decimal(str(monto_pagado))
 
         if monto_pagado <= 0:
             raise ValueError("El monto debe ser mayor a 0")
 
-        # Calcular total a pagar (con interés si es crédito)
         total_a_pagar = (
             venta.total_con_interes
-            if venta.tipo_pago == 'credito'
+            if venta.tipo_pago == 'credito' and venta.total_con_interes
             else venta.total
         )
 
         # Calcular total ya pagado
         total_pagado_anterior = sum(
-            p.monto_pagado for p in venta.pagos.all()
+            Decimal(str(p.monto_pagado)) for p in venta.pagos.all()
         )
 
-        # Validar que no se pague más del total
-        if (total_pagado_anterior + monto_pagado) > total_a_pagar:
+        saldo_pendiente = total_a_pagar - total_pagado_anterior
+        if monto_pagado > saldo_pendiente:
             raise ValueError(
-                f"El pago excede el total. "
+                f"El pago excede el saldo pendiente. "
                 f"Total: {total_a_pagar}, "
                 f"Ya pagado: {total_pagado_anterior}, "
-                f"Falta: {total_a_pagar - total_pagado_anterior}"
+                f"Saldo pendiente: {saldo_pendiente}"
             )
 
-        # ========================================
-        # 3. CREAR EL PAGO
-        # ========================================
+        cuota = None
+        if cuota_id:
+            from apps.cuota.models import CuotaCredito
+            
+            try:
+                cuota = CuotaCredito.objects.select_for_update().get(
+                    id=cuota_id,
+                    venta=venta
+                )
+            except CuotaCredito.DoesNotExist:
+                raise ValueError(f"Cuota con ID {cuota_id} no existe para esta venta")
+            
+            if cuota.estado == 'pagada':
+                raise ValueError(f"La cuota {cuota.numero_cuota} ya está pagada")
+            
+            # Validar que el monto cubra la cuota
+            if monto_pagado < cuota.monto_cuota:
+                raise ValueError(
+                    f"El monto debe ser al menos {cuota.monto_cuota} para pagar la cuota completa"
+                )
+
         print(f"💵 Registrando pago de {monto_pagado} para Venta #{venta.id}")
 
         pago = Pago.objects.create(
             venta=venta,
+            cuota=cuota,
             monto_pagado=monto_pagado,
             metodo_pago=metodo_pago,
-            referencia_pago=referencia_pago
+            referencia_pago=referencia_pago or ''
         )
 
-        # ========================================
-        # 4. ACTUALIZAR ESTADO DE LA VENTA
-        # ========================================
+        if cuota:
+            cuota.estado = 'pagada'
+            cuota.fecha_pago = timezone.now().date()
+            cuota.save()
+            print(f"   ✓ Cuota {cuota.numero_cuota} marcada como PAGADA")
+
         total_pagado_nuevo = total_pagado_anterior + monto_pagado
 
         if total_pagado_nuevo >= total_a_pagar:
@@ -96,28 +94,19 @@ class PagoService:
 
         venta.save()
 
-        # ========================================
-        # 5. MARCAR CUOTAS COMO PAGADAS (si es crédito)
-        # ========================================
-        if venta.tipo_pago == 'credito':
-            PagoService._actualizar_cuotas(venta, total_pagado_nuevo)
+
+        if not cuota and venta.tipo_pago == 'credito':
+            PagoService._actualizar_cuotas_automaticamente(venta, total_pagado_nuevo)
 
         return pago
 
-
     @staticmethod
-    def _actualizar_cuotas(venta, total_pagado):
-        """
-        Marca cuotas como pagadas según el monto acumulado
+    def _actualizar_cuotas_automaticamente(venta, total_pagado):
 
-        Args:
-            venta (Venta): Instancia de la venta
-            total_pagado (Decimal): Total pagado hasta ahora
-        """
         from apps.cuota.models import CuotaCredito
 
-        cuotas = venta.cuotas.filter(estado='pendiente').order_by('numero_cuota')
-        monto_restante = total_pagado
+        cuotas = venta.cuotas.filter(estado__in=['pendiente', 'vencida']).order_by('numero_cuota')
+        monto_restante = Decimal(str(total_pagado))
 
         for cuota in cuotas:
             if monto_restante >= cuota.monto_cuota:
@@ -126,6 +115,39 @@ class PagoService:
                 cuota.save()
 
                 monto_restante -= cuota.monto_cuota
-                print(f"   ✓ Cuota {cuota.numero_cuota} marcada como PAGADA")
+                print(f"   ✓ Cuota {cuota.numero_cuota} marcada como PAGADA automáticamente")
             else:
                 break
+
+    @staticmethod
+    @transaction.atomic
+    def registrar_pago_al_contado(venta_id, metodo_pago, referencia_pago=None):
+        try:
+            venta = Venta.objects.select_for_update().get(id=venta_id)
+        except Venta.DoesNotExist:
+            raise ValueError(f"Venta con ID {venta_id} no existe")
+        
+        if venta.tipo_pago != 'contado':
+            raise ValueError("Esta función solo es para ventas al contado")
+        
+        # Verificar si ya está pagada
+        if venta.estado_pago == 'pagado':
+            raise ValueError("Esta venta ya está completamente pagada")
+        
+        # Registrar pago por el total
+        print(f"💰 Registrando pago al contado de {venta.total} para Venta #{venta.id}")
+        
+        pago = Pago.objects.create(
+            venta=venta,
+            monto_pagado=venta.total,
+            metodo_pago=metodo_pago,
+            referencia_pago=referencia_pago or 'Pago al contado'
+        )
+        
+        # Marcar venta como pagada
+        venta.estado_pago = 'pagado'
+        venta.save()
+        
+        print(f"✅ Venta al contado #{venta.id} pagada completamente")
+        
+        return pago

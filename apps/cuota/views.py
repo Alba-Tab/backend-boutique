@@ -21,22 +21,32 @@ class CuotaViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = CuotaCredito.objects.all()
     serializer_class = CuotaSerializer
-    permission_classes = [IsAuthenticated]
+    #permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         """
         Filtrar según el usuario:
         - Admin ve todas las cuotas
-        - Usuario normal solo ve sus cuotas
+        - Usuario autenticado solo ve sus cuotas
+        - Usuario anónimo ve todas (sin filtro)
         """
         user = self.request.user
 
+        # Si no está autenticado, retornar todas las cuotas
+        if not user.is_authenticated:
+            return CuotaCredito.objects.all().select_related(
+                'venta',
+                'venta__cliente'
+            ).order_by('fecha_vencimiento')
+
+        # Si es admin, ver todas
         if user.is_staff:
             return CuotaCredito.objects.all().select_related(
                 'venta',
                 'venta__cliente'
             ).order_by('fecha_vencimiento')
 
+        # Usuario normal solo ve sus cuotas
         return CuotaCredito.objects.filter(
             venta__cliente=user
         ).select_related('venta').order_by('fecha_vencimiento')
@@ -95,7 +105,7 @@ class CuotaViewSet(viewsets.ReadOnlyModelViewSet):
             'cuotas': serializer.data
         })
 
-    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    @action(detail=True, methods=['post']) 
     def marcar_pagada(self, request, pk=None):
         """
         POST /api/cuotas/{id}/marcar_pagada/

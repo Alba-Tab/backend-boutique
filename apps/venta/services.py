@@ -11,33 +11,14 @@ from apps.usuarios.models import Usuario
 
 
 class VentaService:
-    """
-    Servicio para manejar toda la lógica de negocio de ventas
-    """
-
+    
     @staticmethod
     @transaction.atomic
     def crear_venta(cliente_id, items, tipo_pago, interes=None, plazo_meses=None):
         """
         Crea una venta completa con sus detalles, reducción de stock y cuotas
 
-        Args:
-            cliente_id (int): ID del usuario cliente
-            items (list): Lista de dicts [{'variante_id': 1, 'cantidad': 2}, ...]
-            tipo_pago (str): 'contado' o 'credito'
-            interes (Decimal): Porcentaje de interés (solo si es crédito)
-            plazo_meses (int): Número de meses para pagar (solo si es crédito)
-
-        Returns:
-            Venta: Instancia de venta creada con sus detalles
-
-        Raises:
-            ValueError: Si hay errores de validación o stock insuficiente
         """
-
-        # ========================================
-        # 1. VALIDAR STOCK DE TODAS LAS VARIANTES
-        # ========================================
         print("🔍 Validando stock...")
         for item in items:
             try:
@@ -54,9 +35,6 @@ class VentaService:
                     f"Disponible: {variante.stock}, Solicitado: {item['cantidad']}"
                 )
 
-        # ========================================
-        # 2. CALCULAR SUBTOTALES Y TOTAL
-        # ========================================
         print("💰 Calculando totales...")
         subtotal_total = Decimal('0.00')
         detalles_data = []
@@ -82,10 +60,6 @@ class VentaService:
 
         print(f"   Subtotal: {subtotal_total}")
 
-        # ========================================
-        # 3. CALCULAR DATOS DE CRÉDITO (si aplica)
-        # ========================================
-        total_final = subtotal_total
         total_con_interes = None
         cuota_mensual = None
 
@@ -98,17 +72,17 @@ class VentaService:
                 )
 
             interes_decimal = Decimal(str(interes))
-            interes_monto = subtotal_total * (interes_decimal / 100)
+            # Calcular el monto del interés
+            interes_monto = subtotal_total * (interes_decimal / Decimal('100'))
+            # Total con interés = subtotal + interés
             total_con_interes = subtotal_total + interes_monto
-            cuota_mensual = total_con_interes / plazo_meses
+            # Cuota mensual = total con interés / meses
+            cuota_mensual = total_con_interes / Decimal(str(plazo_meses))
 
             print(f"   Interés: {interes}% = {interes_monto}")
             print(f"   Total con interés: {total_con_interes}")
             print(f"   Cuota mensual: {cuota_mensual}")
 
-        # ========================================
-        # 4. OBTENER CLIENTE (OPCIONAL)
-        # ========================================
         cliente = None
         if cliente_id:
             try:
@@ -119,26 +93,21 @@ class VentaService:
         else:
             print("👤 Venta sin cliente registrado (anónimo)")
 
-        # ========================================
-        # 5. CREAR LA VENTA
-        # ========================================
         print("📝 Creando venta...")
         venta = Venta.objects.create(
             cliente=cliente,  # ⬅️ Puede ser None
-            total=total_final,
+            total=subtotal_total,  # Total SIN interés (base)
             tipo_pago=tipo_pago,
             estado_pago='pendiente',
             interes=interes if tipo_pago == 'credito' else None,
-            total_con_interes=total_con_interes,
+            total_con_interes=total_con_interes,  # Total CON interés (solo crédito)
             plazo_meses=plazo_meses if tipo_pago == 'credito' else None,
             cuota_mensual=cuota_mensual
         )
 
         print(f"✅ Venta #{venta.id} creada")
 
-        # ========================================
-        # 6. CREAR DETALLES Y REDUCIR STOCK
-        # ========================================
+        
         print("📦 Creando detalles y reduciendo stock...")
         for detalle_data in detalles_data:
             # Crear detalle
@@ -162,9 +131,6 @@ class VentaService:
             print(f"   ✓ {detalle_data['producto_nombre']} x{detalle_data['cantidad']} "
                   f"(Stock: {stock_anterior} → {variante.stock})")
 
-        # ========================================
-        # 7. CREAR CUOTAS (si es crédito)
-        # ========================================
         if tipo_pago == 'credito':
             print("📅 Creando cuotas...")
             VentaService._crear_cuotas(venta, plazo_meses, cuota_mensual)

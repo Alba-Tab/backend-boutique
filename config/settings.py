@@ -7,6 +7,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Seguridad
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-$^rv^)b0v*tjp%9hyyubv5ym$m$wm-p-&m#3&n@jlfs0qfgc=b')
 DEBUG = config('DEBUG', default=True, cast=bool)
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
+#AWS S3
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID', default='tu_access_key')
+AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY', default='tu_secret_key')
+AWS_STORAGE_BUCKET_NAME = 'e-commerce-boutique'
+AWS_S3_REGION_NAME = 'us-east-2'
+
+AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
+AWS_S3_FILE_OVERWRITE = False
+#AWS_DEFAULT_ACL = 'public-read'
+AWS_QUERYSTRING_AUTH = False
+MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
 ALLOWED_HOSTS = ['*']
 
 CORS_ALLOW_ALL_ORIGINS = True
@@ -32,6 +46,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'corsheaders',
+    'storages',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
@@ -43,8 +58,7 @@ INSTALLED_APPS = [
     'apps.cuota',
     'apps.pago',
     'apps.venta',
-    'apps.detalle_venta',
-
+    'apps.reports',
 ]
 
 MIDDLEWARE = [
@@ -109,17 +123,15 @@ AUTH_PASSWORD_VALIDATORS = [
 
 
 LANGUAGE_CODE = 'es-es'
-
 TIME_ZONE = config('TIME_ZONE', default='America/La_Paz')
-
 USE_I18N = True
-
 USE_TZ = True
 
 
-STATIC_URL = 'static/'
 
+STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
 
 # Configuración de Email
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
@@ -129,6 +141,19 @@ EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL=config('DEFAULT_FROM_EMAIL', default='')
+from django.core.files.storage import default_storage
+print(f"📦 Django está usando: {default_storage.__class__.__name__}")
+print("🔐 AWS KEY:", config('AWS_ACCESS_KEY_ID'))
+from storages.backends.s3boto3 import S3Boto3Storage
+from django.core.files.storage import default_storage
+
+print(f"🧪 BEFORE OVERRIDE: {default_storage.__class__.__name__}")
+
+# Reemplazar default_storage si no es S3
+if not isinstance(default_storage, S3Boto3Storage):
+    default_storage._wrapped = S3Boto3Storage()
+
+print(f"🧪 AFTER OVERRIDE: {default_storage.__class__.__name__}")
 
 # Configuración de REST Framework
 from datetime import timedelta

@@ -5,7 +5,6 @@ class VarianteProductoSerializer(serializers.ModelSerializer):
     hay_stock = serializers.BooleanField(read_only=True)
     stock_bajo = serializers.BooleanField(read_only=True)
     producto_nombre = serializers.CharField(source='producto.nombre', read_only=True)
-
     class Meta:
         model = VarianteProducto
         fields = [

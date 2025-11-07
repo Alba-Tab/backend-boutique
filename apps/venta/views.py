@@ -47,13 +47,12 @@ class VentaViewSet(viewsets.ModelViewSet):
         except ValueError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=True, methods=['get'])
-    def detalles(self, request, pk=None):
-        """GET /api/ventas/{id}/detalles/"""
-        venta = self.get_object()
+    # @action(detail=True, methods=['get'])
+    # def detalles(self, request, pk=None):
+    #     """GET /api/ventas/{id}/detalles/"""
+    #     venta = self.get_object()
 
-        from apps.detalle_venta.serializers import DetalleVentaSerializer
-        detalles = venta.detalles.all()
-        serializer = DetalleVentaSerializer(detalles, many=True)
+    #     detalles = venta.detalles.all()
+    #     serializer = VentaDetailSerializer(detalles, many=True)
 
-        return Response(serializer.data)
+    #     return Response(serializer.data)

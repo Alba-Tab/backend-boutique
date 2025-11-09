@@ -17,6 +17,7 @@ class VentaService:
     def crear_venta(
         items,
         tipo_venta,
+        origen='tienda',
         vendedor_id=None,
         cliente_id=None,
         interes=None,
@@ -48,10 +49,11 @@ class VentaService:
             except Usuario.DoesNotExist:
                 raise ValueError(f"Vendedor con ID {vendedor_id} no existe")
         else:
-            print("🛒 Venta desde ecommerce (sin vendedor)")
+            print(f"🛒 Venta desde {origen} (sin vendedor)")
 
-        # Detectar origen automáticamente
-        origen = 'tienda' if vendedor_id else 'ecommerce'
+        # Si no se especifica origen, detectar automáticamente
+        if not origen:
+            origen = 'tienda' if vendedor_id else 'ecommerce'
 
         print("🔍 Validando stock...")
         for item in items:

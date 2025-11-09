@@ -11,15 +11,15 @@ from apps.usuarios.models import Usuario
 
 
 class VentaService:
-    
+
     @staticmethod
     @transaction.atomic
     def crear_venta(
-        vendedor_id, 
-        items, 
-        tipo_venta, 
-        cliente_id=None, 
-        interes=None, 
+        items,
+        tipo_venta,
+        vendedor_id=None,
+        cliente_id=None,
+        interes=None,
         plazo_meses=None,
         correo_cliente=None,
         direccion_cliente=None,
@@ -31,19 +31,28 @@ class VentaService:
         """
         Crea una venta completa con sus detalles, reducción de stock y cuotas
         """
-        # Validar vendedor
-        print("👤 Validando vendedor...")
-        try:
-            vendedor = Usuario.objects.get(id=vendedor_id)
-            if vendedor.rol != 'vendedor':
-                raise ValueError(f"El usuario {vendedor.username} debe tener rol 'vendedor'")
-            if not vendedor.activo:
-                raise ValueError(f"El vendedor {vendedor.username} no está activo")
-        except Usuario.DoesNotExist:
-            raise ValueError(f"Vendedor con ID {vendedor_id} no existe")
-        
-        print(f"   ✓ Vendedor: {vendedor.username}")
-        
+        # Validar vendedor (opcional)
+        vendedor = None
+        nombre_vendedor = None
+
+        if vendedor_id:
+            print("👤 Validando vendedor...")
+            try:
+                vendedor = Usuario.objects.get(id=vendedor_id)
+                if vendedor.rol != 'vendedor':
+                    raise ValueError(f"El usuario {vendedor.username} debe tener rol 'vendedor'")
+                if not vendedor.activo:
+                    raise ValueError(f"El vendedor {vendedor.username} no está activo")
+                nombre_vendedor = vendedor.get_full_name() or vendedor.username
+                print(f"   ✓ Vendedor: {vendedor.username}")
+            except Usuario.DoesNotExist:
+                raise ValueError(f"Vendedor con ID {vendedor_id} no existe")
+        else:
+            print("🛒 Venta desde ecommerce (sin vendedor)")
+
+        # Detectar origen automáticamente
+        origen = 'tienda' if vendedor_id else 'ecommerce'
+
         print("🔍 Validando stock...")
         for item in items:
             try:
@@ -123,7 +132,7 @@ class VentaService:
         venta = Venta.objects.create(
             cliente=cliente,
             vendedor=vendedor,
-            nombre_vendedor=vendedor.get_full_name() or vendedor.username,
+            nombre_vendedor=nombre_vendedor,
             correo_cliente=correo_cliente,
             direccion_cliente=direccion_cliente,
             nombre_cliente=nombre_cliente,
@@ -131,6 +140,7 @@ class VentaService:
             numero_cliente=numero_cliente,
             estado=estado,
             tipo_venta=tipo_venta,
+            origen=origen,
             total=subtotal_total,
             total_con_interes=total_con_interes,
             plazo_meses=plazo_meses if tipo_venta == 'credito' else None,
@@ -140,7 +150,7 @@ class VentaService:
 
         print(f"✅ Venta #{venta.pk} creada")
 
-        
+
         print("📦 Creando detalles y reduciendo stock...")
         for detalle_data in detalles_data:
             # Crear detalle

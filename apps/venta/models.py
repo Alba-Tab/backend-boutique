@@ -10,18 +10,25 @@ class Venta(models.Model):
         ('credito', 'Crédito'),
     )
 
+    ORIGEN_CHOICES = (
+        ('tienda', 'Tienda Física'),
+        ('ecommerce', 'Ecommerce'),
+    )
+
     cliente = models.ForeignKey(
-        Usuario, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
-        related_name='ventas_como_cliente', 
+        Usuario,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='ventas_como_cliente',
         limit_choices_to={'rol': 'cliente'}
     )
     vendedor = models.ForeignKey(
-        Usuario, 
-        on_delete=models.PROTECT, 
-        related_name='ventas_como_vendedor', 
+        Usuario,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='ventas_como_vendedor',
         limit_choices_to={'rol': 'vendedor'}
     )
 
@@ -31,11 +38,12 @@ class Venta(models.Model):
     telefono_cliente = models.CharField(max_length=20, null=True, blank=True)
     numero_cliente = models.CharField(max_length=50, null=True, blank=True)
 
-    nombre_vendedor = models.CharField(max_length=100)
+    nombre_vendedor = models.CharField(max_length=100, null=True, blank=True)
 
     estado = models.CharField(max_length=50, default='pendiente')
     fecha = models.DateField(auto_now_add=True)
     tipo_venta = models.CharField(max_length=20, choices=TIPO_VENTA)
+    origen = models.CharField(max_length=20, choices=ORIGEN_CHOICES, default='tienda')
 
     plazo_meses = models.PositiveIntegerField(null=True, blank=True)
     interes = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)

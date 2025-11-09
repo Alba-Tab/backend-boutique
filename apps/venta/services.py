@@ -14,11 +14,36 @@ class VentaService:
     
     @staticmethod
     @transaction.atomic
-    def crear_venta(cliente_id, items, tipo_pago, interes=None, plazo_meses=None):
+    def crear_venta(
+        vendedor_id, 
+        items, 
+        tipo_venta, 
+        cliente_id=None, 
+        interes=None, 
+        plazo_meses=None,
+        correo_cliente=None,
+        direccion_cliente=None,
+        nombre_cliente=None,
+        telefono_cliente=None,
+        numero_cliente=None,
+        estado='pendiente'
+    ):
         """
         Crea una venta completa con sus detalles, reducción de stock y cuotas
-
         """
+        # Validar vendedor
+        print("👤 Validando vendedor...")
+        try:
+            vendedor = Usuario.objects.get(id=vendedor_id)
+            if vendedor.rol != 'vendedor':
+                raise ValueError(f"El usuario {vendedor.username} debe tener rol 'vendedor'")
+            if not vendedor.activo:
+                raise ValueError(f"El vendedor {vendedor.username} no está activo")
+        except Usuario.DoesNotExist:
+            raise ValueError(f"Vendedor con ID {vendedor_id} no existe")
+        
+        print(f"   ✓ Vendedor: {vendedor.username}")
+        
         print("🔍 Validando stock...")
         for item in items:
             try:
@@ -29,9 +54,9 @@ class VentaService:
                 raise ValueError(f"Variante con ID {item['variante_id']} no existe")
 
             if variante.stock < item['cantidad']:
+                talla_info = f" - Talla {variante.talla}" if variante.talla else ""
                 raise ValueError(
-                    f"Stock insuficiente para {variante.producto.nombre} "
-                    f"({variante.talla} - {variante.color}). "
+                    f"Stock insuficiente para {variante.producto.nombre}{talla_info}. "
                     f"Disponible: {variante.stock}, Solicitado: {item['cantidad']}"
                 )
 
@@ -42,28 +67,27 @@ class VentaService:
         for item in items:
             variante = VarianteProducto.objects.get(id=item['variante_id'])
             cantidad = item['cantidad']
-            precio_unitario = Decimal(str(variante.precio_venta))
-            subtotal = precio_unitario * cantidad
+            precio_unitario = Decimal(str(variante.precio))
+            sub_total = precio_unitario * cantidad
 
-            subtotal_total += subtotal
+            subtotal_total += sub_total
 
             detalles_data.append({
                 'variante': variante,
                 'cantidad': cantidad,
                 'precio_unitario': precio_unitario,
-                'subtotal': subtotal,
+                'sub_total': sub_total,
                 # Snapshot de datos (por si cambian después)
-                'producto_nombre': variante.producto.nombre,
-                'talla': variante.talla,
-                'color': variante.color
+                'nombre_producto': variante.producto.nombre,
+                'talla': variante.talla
             })
 
         print(f"   Subtotal: {subtotal_total}")
 
-        total_con_interes = None
-        cuota_mensual = None
+        total_con_interes = subtotal_total
+        cuota_mensual = Decimal('0.00')
 
-        if tipo_pago == 'credito':
+        if tipo_venta == 'credito':
             print("🏦 Calculando crédito...")
 
             if not interes or not plazo_meses:
@@ -87,25 +111,34 @@ class VentaService:
         if cliente_id:
             try:
                 cliente = Usuario.objects.get(id=cliente_id)
-                print(f"👤 Cliente: {cliente.email}")
+                if cliente.rol != 'cliente':
+                    raise ValueError(f"El usuario {cliente.username} debe tener rol 'cliente'")
+                print(f"👤 Cliente registrado: {cliente.email}")
             except Usuario.DoesNotExist:
                 raise ValueError(f"Cliente con ID {cliente_id} no existe")
         else:
-            print("👤 Venta sin cliente registrado (anónimo)")
+            print("👤 Venta sin cliente registrado (datos manuales)")
 
         print("📝 Creando venta...")
         venta = Venta.objects.create(
-            cliente=cliente,  # ⬅️ Puede ser None
-            total=subtotal_total,  # Total SIN interés (base)
-            tipo_pago=tipo_pago,
-            estado_pago='pendiente',
-            interes=interes if tipo_pago == 'credito' else None,
-            total_con_interes=total_con_interes,  # Total CON interés (solo crédito)
-            plazo_meses=plazo_meses if tipo_pago == 'credito' else None,
+            cliente=cliente,
+            vendedor=vendedor,
+            nombre_vendedor=vendedor.get_full_name() or vendedor.username,
+            correo_cliente=correo_cliente,
+            direccion_cliente=direccion_cliente,
+            nombre_cliente=nombre_cliente,
+            telefono_cliente=telefono_cliente,
+            numero_cliente=numero_cliente,
+            estado=estado,
+            tipo_venta=tipo_venta,
+            total=subtotal_total,
+            total_con_interes=total_con_interes,
+            plazo_meses=plazo_meses if tipo_venta == 'credito' else None,
+            interes=interes if tipo_venta == 'credito' else None,
             cuota_mensual=cuota_mensual
         )
 
-        print(f"✅ Venta #{venta.id} creada")
+        print(f"✅ Venta #{venta.pk} creada")
 
         
         print("📦 Creando detalles y reduciendo stock...")
@@ -113,13 +146,12 @@ class VentaService:
             # Crear detalle
             DetalleVenta.objects.create(
                 venta=venta,
-                variante=detalle_data['variante'],
+                variante_producto=detalle_data['variante'],
                 cantidad=detalle_data['cantidad'],
                 precio_unitario=detalle_data['precio_unitario'],
-                subtotal=detalle_data['subtotal'],
-                producto_nombre=detalle_data['producto_nombre'],
-                talla=detalle_data['talla'],
-                color=detalle_data['color']
+                sub_total=detalle_data['sub_total'],
+                nombre_producto=detalle_data['nombre_producto'],
+                talla=detalle_data['talla']
             )
 
             # REDUCIR STOCK
@@ -128,14 +160,15 @@ class VentaService:
             variante.stock -= detalle_data['cantidad']
             variante.save()
 
-            print(f"   ✓ {detalle_data['producto_nombre']} x{detalle_data['cantidad']} "
+            talla_info = f" - Talla {detalle_data['talla']}" if detalle_data['talla'] else ""
+            print(f"   ✓ {detalle_data['nombre_producto']}{talla_info} x{detalle_data['cantidad']} "
                   f"(Stock: {stock_anterior} → {variante.stock})")
 
-        if tipo_pago == 'credito':
+        if tipo_venta == 'credito':
             print("📅 Creando cuotas...")
             VentaService._crear_cuotas(venta, plazo_meses, cuota_mensual)
 
-        print(f"🎉 Venta #{venta.id} completada exitosamente")
+        print(f"🎉 Venta #{venta.pk} completada exitosamente")
         return venta
 
 

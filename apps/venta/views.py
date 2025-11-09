@@ -36,11 +36,18 @@ class VentaViewSet(viewsets.ModelViewSet):
 
         try:
             venta = VentaService.crear_venta(
+                vendedor_id=serializer.validated_data['vendedor'],
                 cliente_id=serializer.validated_data.get('cliente'),
                 items=serializer.validated_data['items'],
-                tipo_pago=serializer.validated_data['tipo_pago'],
+                tipo_venta=serializer.validated_data['tipo_venta'],
                 interes=serializer.validated_data.get('interes'),
-                plazo_meses=serializer.validated_data.get('plazo_meses')
+                plazo_meses=serializer.validated_data.get('plazo_meses'),
+                correo_cliente=serializer.validated_data.get('correo_cliente'),
+                direccion_cliente=serializer.validated_data.get('direccion_cliente'),
+                nombre_cliente=serializer.validated_data.get('nombre_cliente'),
+                telefono_cliente=serializer.validated_data.get('telefono_cliente'),
+                numero_cliente=serializer.validated_data.get('numero_cliente'),
+                estado=serializer.validated_data.get('estado', 'pendiente')
             )
 
             response_serializer = VentaDetailSerializer(venta)
@@ -61,7 +68,7 @@ class VentaViewSet(viewsets.ModelViewSet):
     def pagar_al_contado(self, request, pk=None):
         venta = self.get_object()
         
-        if venta.tipo_pago != 'contado':
+        if venta.tipo_venta != 'contado':
             return Response(
                 {'error': 'Esta venta no es al contado'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -72,7 +79,7 @@ class VentaViewSet(viewsets.ModelViewSet):
         
         try:
             pago = PagoService.registrar_pago_al_contado(
-                venta_id=venta.id,
+                venta_id=venta.pk,
                 metodo_pago=serializer.validated_data['metodo_pago'],
                 referencia_pago=serializer.validated_data.get('referencia_pago')
             )
@@ -102,8 +109,6 @@ class VentaViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         
         detalle = serializer.save(venta=venta)
-        
-        venta.calcular_total()
         
         return Response(
             DetalleVentaSerializer(detalle).data,

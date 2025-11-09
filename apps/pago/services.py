@@ -14,7 +14,7 @@ class PagoService:
         # Registra un pago y actualiza el estado de la venta
         
         try:
-            venta = Venta.objects.select_for_update().get(id=venta_id)
+            venta = Venta.objects.select_for_update().get(pk=venta_id)
         except Venta.DoesNotExist:
             raise ValueError(f"Venta con ID {venta_id} no existe")
 
@@ -25,7 +25,7 @@ class PagoService:
 
         total_a_pagar = (
             venta.total_con_interes
-            if venta.tipo_pago == 'credito' and venta.total_con_interes
+            if venta.tipo_venta == 'credito' and venta.total_con_interes
             else venta.total
         )
 
@@ -64,7 +64,7 @@ class PagoService:
                     f"El monto debe ser al menos {cuota.monto_cuota} para pagar la cuota completa"
                 )
 
-        print(f"💵 Registrando pago de {monto_pagado} para Venta #{venta.id}")
+        print(f"💵 Registrando pago de {monto_pagado} para Venta #{venta.pk}")
 
         pago = Pago.objects.create(
             venta=venta,
@@ -82,20 +82,20 @@ class PagoService:
 
         total_pagado_nuevo = total_pagado_anterior + monto_pagado
 
+        # Actualizar estado de la venta
         if total_pagado_nuevo >= total_a_pagar:
-            venta.estado_pago = 'pagado'
-            print(f"✅ Venta #{venta.id} marcada como PAGADA")
+            venta.estado = 'pagado'
+            print(f"✅ Venta #{venta.pk} marcada como PAGADA")
         elif total_pagado_nuevo > 0:
-            venta.estado_pago = 'parcial'
-            print(f"⚠️ Venta #{venta.id} con pago PARCIAL "
+            venta.estado = 'parcial'
+            print(f"⚠️ Venta #{venta.pk} con pago PARCIAL "
                   f"({total_pagado_nuevo}/{total_a_pagar})")
         else:
-            venta.estado_pago = 'pendiente'
+            venta.estado = 'pendiente'
 
         venta.save()
 
-
-        if not cuota and venta.tipo_pago == 'credito':
+        if not cuota and venta.tipo_venta == 'credito':
             PagoService._actualizar_cuotas_automaticamente(venta, total_pagado_nuevo)
 
         return pago
@@ -123,19 +123,19 @@ class PagoService:
     @transaction.atomic
     def registrar_pago_al_contado(venta_id, metodo_pago, referencia_pago=None):
         try:
-            venta = Venta.objects.select_for_update().get(id=venta_id)
+            venta = Venta.objects.select_for_update().get(pk=venta_id)
         except Venta.DoesNotExist:
             raise ValueError(f"Venta con ID {venta_id} no existe")
         
-        if venta.tipo_pago != 'contado':
+        if venta.tipo_venta != 'contado':
             raise ValueError("Esta función solo es para ventas al contado")
         
         # Verificar si ya está pagada
-        if venta.estado_pago == 'pagado':
+        if venta.estado == 'pagado':
             raise ValueError("Esta venta ya está completamente pagada")
         
         # Registrar pago por el total
-        print(f"💰 Registrando pago al contado de {venta.total} para Venta #{venta.id}")
+        print(f"💰 Registrando pago al contado de {venta.total} para Venta #{venta.pk}")
         
         pago = Pago.objects.create(
             venta=venta,
@@ -145,9 +145,9 @@ class PagoService:
         )
         
         # Marcar venta como pagada
-        venta.estado_pago = 'pagado'
+        venta.estado = 'pagado'
         venta.save()
         
-        print(f"✅ Venta al contado #{venta.id} pagada completamente")
+        print(f"✅ Venta al contado #{venta.pk} pagada completamente")
         
         return pago

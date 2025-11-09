@@ -8,10 +8,10 @@ class ProductoSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Producto
-        fields = ['id','nombre','categoria','precio_base', 'genero', 'descripcion', 'imagen_url', 'stock', 'categoria_nombre']
+        fields = ['id', 'nombre', 'categoria', 'categoria_nombre', 'genero', 'descripcion', 'marca', 'imagen_url', 'stock']
 
     def get_imagen_url(self, obj):
-        return obj.imagen.url if obj.imagen else None
+        return obj.image.url if obj.image else None
     
     def get_stock(self, obj):
         total_stock = sum(variante.stock for variante in obj.variantes.all())

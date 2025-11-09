@@ -19,7 +19,6 @@ class ProductoViewSet(viewsets.ModelViewSet):
         Retorna todas las variantes del producto
 
         Query params opcionales:
-        - color: filtrar por color
         - talla: filtrar por talla
         - en_stock: true/false para filtrar con stock disponible
         """
@@ -27,10 +26,6 @@ class ProductoViewSet(viewsets.ModelViewSet):
         variantes = producto.variantes.all()
 
         # Filtros opcionales
-        color = request.query_params.get('color')
-        if color:
-            variantes = variantes.filter(color=color)
-
         talla = request.query_params.get('talla')
         if talla:
             variantes = variantes.filter(talla=talla)

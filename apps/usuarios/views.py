@@ -22,7 +22,8 @@ class UsuarioViewSet(viewsets.ModelViewSet):
                 password=request.data['password'],
                 first_name=request.data.get('first_name', ''),
                 last_name=request.data.get('last_name', ''),
-                telefono=request.data.get('telefono', '')
+                telefono=request.data.get('telefono', ''),
+                rol=request.data.get('rol', 'cliente')
             )
             refresh = RefreshToken.for_user(usuario)
 

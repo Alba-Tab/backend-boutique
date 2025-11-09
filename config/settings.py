@@ -98,9 +98,9 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': config('DB_ENGINE', default='django.db.backends.postgresql'),
-        'NAME': config('DB_NAME', default=''),
-        'USER': config('DB_USER', default='postgres'),
-        'PASSWORD': config('DB_PASSWORD', default=''),
+        'NAME': config('DB_NAME', default='mydb'),
+        'USER': config('DB_USER', default='myuser'),
+        'PASSWORD': config('DB_PASSWORD', default='mypass'),
         'HOST': config('DB_HOST', default='127.0.0.1'),
         'PORT': config('DB_PORT', default='5433'),
     }

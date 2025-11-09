@@ -1,0 +1,6 @@
+docker-compose up -d --build
+
+cambios en .env
+DB_PASSWORD=postgres 
+#localhost
+DB_HOST=db

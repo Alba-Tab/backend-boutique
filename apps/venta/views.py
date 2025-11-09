@@ -36,10 +36,10 @@ class VentaViewSet(viewsets.ModelViewSet):
 
         try:
             venta = VentaService.crear_venta(
-                vendedor_id=serializer.validated_data['vendedor'],
-                cliente_id=serializer.validated_data.get('cliente'),
                 items=serializer.validated_data['items'],
                 tipo_venta=serializer.validated_data['tipo_venta'],
+                vendedor_id=serializer.validated_data.get('vendedor'),
+                cliente_id=serializer.validated_data.get('cliente'),
                 interes=serializer.validated_data.get('interes'),
                 plazo_meses=serializer.validated_data.get('plazo_meses'),
                 correo_cliente=serializer.validated_data.get('correo_cliente'),
@@ -67,32 +67,32 @@ class VentaViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def pagar_al_contado(self, request, pk=None):
         venta = self.get_object()
-        
+
         if venta.tipo_venta != 'contado':
             return Response(
                 {'error': 'Esta venta no es al contado'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         serializer = PagoAlContadoSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+
         try:
             pago = PagoService.registrar_pago_al_contado(
                 venta_id=venta.pk,
                 metodo_pago=serializer.validated_data['metodo_pago'],
                 referencia_pago=serializer.validated_data.get('referencia_pago')
             )
-            
+
             pago_serializer = PagoSerializer(pago)
             venta_serializer = VentaDetailSerializer(venta)
-            
+
             return Response({
                 'message': 'Venta pagada completamente',
                 'pago': pago_serializer.data,
                 'venta': venta_serializer.data
             }, status=status.HTTP_201_CREATED)
-            
+
         except ValueError as e:
             return Response(
                 {'error': str(e)},
@@ -104,12 +104,12 @@ class VentaViewSet(viewsets.ModelViewSet):
         """POST /api/ventas/{id}/agregar_detalle/
         """
         venta = self.get_object()
-        
+
         serializer = DetalleVentaSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+
         detalle = serializer.save(venta=venta)
-        
+
         return Response(
             DetalleVentaSerializer(detalle).data,
             status=status.HTTP_201_CREATED
@@ -121,23 +121,23 @@ class VentaViewSet(viewsets.ModelViewSet):
         """
         venta = self.get_object()
         detalle_id = request.query_params.get('detalle_id')
-        
+
         if not detalle_id:
             return Response(
                 {'error': 'detalle_id es requerido como query parameter'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             detalle = venta.detalles.get(id=detalle_id)
-            
+
             serializer = DetalleVentaSerializer(detalle, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
             serializer.save()
-            
+
             # Recalcular total
             venta.calcular_total()
-            
+
             return Response(DetalleVentaSerializer(detalle).data)
         except Exception as e:
             return Response(
@@ -152,20 +152,20 @@ class VentaViewSet(viewsets.ModelViewSet):
         """
         venta = self.get_object()
         detalle_id = request.query_params.get('detalle_id')
-        
+
         if not detalle_id:
             return Response(
                 {'error': 'detalle_id es requerido como query parameter'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             detalle = venta.detalles.get(id=detalle_id)
             detalle.delete()
-            
+
             # Recalcular total
             venta.calcular_total()
-            
+
             return Response(
                 {'message': 'Detalle eliminado correctamente'},
                 status=status.HTTP_200_OK

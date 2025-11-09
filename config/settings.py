@@ -8,19 +8,30 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-$^rv^)b0v*tjp%9hyyubv5ym$m$wm-p-&m#3&n@jlfs0qfgc=b')
 DEBUG = config('DEBUG', default=True, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
-#AWS S3
-DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 
+# AWS S3 Configuration
 AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID', default='tu_access_key')
 AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY', default='tu_secret_key')
-AWS_STORAGE_BUCKET_NAME = 'e-commerce-boutique'
-AWS_S3_REGION_NAME = 'us-east-2'
+AWS_STORAGE_BUCKET_NAME = config('AWS_STORAGE_BUCKET_NAME', default='e-commerce-boutique')
+AWS_S3_REGION_NAME = config('AWS_S3_REGION_NAME', default='us-east-2')
 
-AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
+
+AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
+AWS_S3_OBJECT_PARAMETERS = {
+    'CacheControl': 'max-age=86400',
+}
 AWS_S3_FILE_OVERWRITE = False
-#AWS_DEFAULT_ACL = 'public-read'
-AWS_QUERYSTRING_AUTH = False
-MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
+AWS_DEFAULT_ACL = None  # ✅ IMPORTANTE: None para buckets sin ACLs habilitadas
+AWS_QUERYSTRING_AUTH = False  # No incluir query strings en las URLs
+AWS_S3_SIGNATURE_VERSION = 's3v4'
+
+# Storage backends
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+# Media files URL
+MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
+MEDIA_ROOT = ''  # No usar MEDIA_ROOT con S3
 ALLOWED_HOSTS = ['*']
 
 CORS_ALLOW_ALL_ORIGINS = True
@@ -140,7 +151,8 @@ EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
-DEFAULT_FROM_EMAIL=config('DEFAULT_FROM_EMAIL', default='')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='')
+
 from django.core.files.storage import default_storage
 print(f"📦 Django está usando: {default_storage.__class__.__name__}")
 print("🔐 AWS KEY:", config('AWS_ACCESS_KEY_ID'))

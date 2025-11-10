@@ -38,6 +38,7 @@ class VentaViewSet(viewsets.ModelViewSet):
             venta = VentaService.crear_venta(
                 items=serializer.validated_data['items'],
                 tipo_venta=serializer.validated_data['tipo_venta'],
+                origen=serializer.validated_data.get('origen', 'tienda'),
                 vendedor_id=serializer.validated_data.get('vendedor'),
                 cliente_id=serializer.validated_data.get('cliente'),
                 interes=serializer.validated_data.get('interes'),

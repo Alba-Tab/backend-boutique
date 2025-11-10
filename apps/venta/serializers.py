@@ -70,7 +70,8 @@ class VentaListSerializer(serializers.ModelSerializer):
         model = Venta
         fields = [
             'id', 'cliente', 'cliente_nombre', 'vendedor', 'vendedor_nombre',
-            'fecha', 'total', 'tipo_venta', 'origen', 'estado'
+            'fecha', 'total', 'tipo_venta', 'origen', 'estado',
+            'interes', 'total_con_interes', 'plazo_meses', 'cuota_mensual'
         ]
 
     def get_cliente_nombre(self, obj):
@@ -81,9 +82,12 @@ class VentaListSerializer(serializers.ModelSerializer):
 
 class VentaDetailSerializer(serializers.ModelSerializer):
     """Con detalles anidados"""
+    from apps.pago.serializers import PagoSerializer
+    
     cliente_nombre = serializers.SerializerMethodField()
     vendedor_nombre = serializers.CharField(source='nombre_vendedor', read_only=True)
     detalles = DetalleVentaSerializer(many=True, read_only=True)
+    pagos = PagoSerializer(many=True, read_only=True)
     monto_total_pagar = serializers.SerializerMethodField()
 
     class Meta:
@@ -94,7 +98,7 @@ class VentaDetailSerializer(serializers.ModelSerializer):
             'telefono_cliente', 'numero_cliente',
             'fecha', 'total', 'tipo_venta', 'origen', 'estado',
             'interes', 'total_con_interes', 'plazo_meses', 'cuota_mensual',
-            'monto_total_pagar', 'detalles'
+            'monto_total_pagar', 'detalles', 'pagos'
         ]
 
     def get_cliente_nombre(self, obj):
@@ -126,9 +130,10 @@ class CrearVentaSerializer(serializers.Serializer):
     numero_cliente = serializers.CharField(max_length=50, required=False, allow_null=True)
 
     tipo_venta = serializers.ChoiceField(choices=['contado', 'credito'])
+    origen = serializers.ChoiceField(choices=['tienda', 'ecommerce'], required=False, default='tienda')
     items = serializers.ListField(child=serializers.DictField())
-    interes = serializers.DecimalField(max_digits=5, decimal_places=2, required=False)
-    plazo_meses = serializers.IntegerField(required=False)
+    interes = serializers.DecimalField(max_digits=5, decimal_places=2, required=False, allow_null=True)
+    plazo_meses = serializers.IntegerField(required=False, allow_null=True)
     estado = serializers.CharField(max_length=50, required=False, default='pendiente')
 
     def validate(self, data):

@@ -54,7 +54,7 @@ class PagoViewSet(viewsets.ModelViewSet):
             total_pagado = sum(p.monto_pagado for p in venta.pagos.all())
             total_a_pagar = (
                 venta.total_con_interes
-                if venta.tipo_pago == 'credito' and venta.total_con_interes
+                if venta.tipo_venta == 'credito' and venta.total_con_interes
                 else venta.total
             )
 
@@ -65,7 +65,7 @@ class PagoViewSet(viewsets.ModelViewSet):
                 'pago': response_serializer.data,
                 'venta': {
                     'id': venta.id,
-                    'estado_pago': venta.estado_pago,
+                    'estado': venta.estado,
                     'total': str(total_a_pagar),
                     'total_pagado': str(total_pagado),
                     'saldo_pendiente': str(total_a_pagar - total_pagado)

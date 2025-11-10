@@ -1,9 +1,5 @@
 from rest_framework import serializers
 
-class ReportQueryInputSerializer(serializers.Serializer):
-    query = serializers.CharField(max_length=2000)
-
-class ReportQueryOutputSerializer(serializers.Serializer):
-    query_original = serializers.CharField()
-    parsed_query = serializers.DictField()
-    report = serializers.DictField()
+class ReportEmailSerializer(serializers.Serializer):
+    """Serializer para solicitar reporte por correo"""
+    user_email = serializers.EmailField(default='garcia.brayan3001@gmail.com')

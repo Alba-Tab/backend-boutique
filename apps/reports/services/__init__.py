@@ -1,3 +1,2 @@
-from .report_generator import *
-from .ai_adapter import *
-from .natural_language_parser import *
+# Reports services module
+# This module is intentionally empty as all report logic is now in views.py

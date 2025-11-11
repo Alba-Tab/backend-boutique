@@ -15,7 +15,7 @@ from .serializers import (
 from .services import VentaService
 
 class VentaViewSet(viewsets.ModelViewSet):
-    queryset = Venta.objects.all()
+    queryset = Venta.objects.all().order_by('-fecha')
     # permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
@@ -29,18 +29,79 @@ class VentaViewSet(viewsets.ModelViewSet):
     #         return Venta.objects.all().select_related('cliente')
     #     return Venta.objects.filter(cliente=user).select_related('cliente')
 
+    @action(detail=False, methods=['get'], url_path='mis-pedidos', permission_classes=[IsAuthenticated])
+    def mis_pedidos(self, request):
+        """
+        Endpoint para que clientes vean sus pedidos
+        GET /api/ventas/mis-pedidos/
+        """
+        # Debug: verificar autenticación
+        print(f"Usuario: {request.user}")
+        print(f"Es autenticado: {request.user.is_authenticated}")
+        print(f"Rol: {getattr(request.user, 'rol', 'No tiene rol')}")
+        print(f"ID Usuario: {request.user.id if request.user.is_authenticated else 'N/A'}")
+
+        # if request.user.rol != 'cliente':
+        #     return Response(
+        #         {'error': 'Solo clientes pueden acceder a este endpoint'},
+        #         status=status.HTTP_403_FORBIDDEN
+        #     )
+
+        # Debug: ver TODAS las ventas del usuario
+        todas_ventas_usuario = Venta.objects.filter(cliente=request.user)
+        print(f"Total ventas del usuario (cualquier origen): {todas_ventas_usuario.count()}")
+
+        # Debug: ver qué orígenes tienen
+        for v in todas_ventas_usuario:
+            print(f"  Venta ID {v.id}: origen='{v.origen}', cliente={v.cliente_id}")
+
+        ventas = Venta.objects.filter(
+            cliente=request.user,
+            origen='ecommerce'
+        ).select_related('cliente').order_by('-fecha')
+
+        print(f"Ventas con origen='ecommerce': {ventas.count()}")
+
+        # Filtros opcionales
+        estado = request.query_params.get('estado')
+        if estado:
+            ventas = ventas.filter(estado=estado)
+
+        tipo_venta = request.query_params.get('tipo_venta')
+        if tipo_venta:
+            ventas = ventas.filter(tipo_venta=tipo_venta)
+
+        serializer = VentaListSerializer(ventas, many=True)
+        return Response(serializer.data)
+
     @action(detail=False, methods=['post'])
     def crear(self, request):
         serializer = CrearVentaSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        # Obtener vendedor_id del JSON (si viene)
+        vendedor_id = serializer.validated_data.get('vendedor')
+
+        # Si NO viene en JSON pero el usuario logueado es vendedor, usar automático
+        if not vendedor_id and request.user.is_authenticated and request.user.rol == 'vendedor':
+            vendedor_id = request.user.id
+            print(f"🔐 Vendedor detectado automáticamente: {request.user.username} (ID: {vendedor_id})")
+
+        # Obtener cliente_id del JSON (si viene)
+        cliente_id = serializer.validated_data.get('cliente')
+
+        # Si NO viene en JSON pero el usuario logueado es cliente, usar automático
+        if not cliente_id and request.user.is_authenticated and request.user.rol == 'cliente':
+            cliente_id = request.user.id
+            print(f"🔐 Cliente detectado automáticamente: {request.user.username} (ID: {cliente_id})")
 
         try:
             venta = VentaService.crear_venta(
                 items=serializer.validated_data['items'],
                 tipo_venta=serializer.validated_data['tipo_venta'],
                 origen=serializer.validated_data.get('origen', 'tienda'),
-                vendedor_id=serializer.validated_data.get('vendedor'),
-                cliente_id=serializer.validated_data.get('cliente'),
+                vendedor_id=vendedor_id,
+                cliente_id=cliente_id,
                 interes=serializer.validated_data.get('interes'),
                 plazo_meses=serializer.validated_data.get('plazo_meses'),
                 correo_cliente=serializer.validated_data.get('correo_cliente'),

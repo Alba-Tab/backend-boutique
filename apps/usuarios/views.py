@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
+from django_filters.rest_framework import DjangoFilterBackend
 from .models import Usuario
 from .serializers import UsuarioSerializer
 
@@ -11,6 +12,8 @@ class UsuarioViewSet(viewsets.ModelViewSet):
     queryset = Usuario.objects.all()
     serializer_class = UsuarioSerializer
     # permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['rol', 'activo']
 
     @action(detail=False, methods=['post'], permission_classes=[AllowAny])
     def registro(self, request):
@@ -74,3 +77,113 @@ class UsuarioViewSet(viewsets.ModelViewSet):
             return Response({'message': 'Logout exitoso'}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['patch'], permission_classes=[IsAuthenticated])
+    def actualizar_perfil(self, request):
+        """El usuario actualiza su propia información"""
+        usuario = request.user
+
+        # Campos permitidos para actualizar
+        campos_permitidos = ['first_name', 'last_name', 'email', 'telefono']
+
+        # Validar email único (si lo está cambiando)
+        nuevo_email = request.data.get('email')
+        if nuevo_email and nuevo_email != usuario.email:
+            if Usuario.objects.filter(email=nuevo_email).exists():
+                return Response(
+                    {'error': 'Este email ya está registrado'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        # Actualizar solo campos permitidos
+        for campo in campos_permitidos:
+            if campo in request.data:
+                setattr(usuario, campo, request.data[campo])
+
+        usuario.save()
+
+        return Response({
+            'message': 'Perfil actualizado exitosamente',
+            'user': UsuarioSerializer(usuario).data
+        })
+
+    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
+    def cambiar_password(self, request):
+        """Cambiar contraseña del usuario autenticado"""
+        usuario = request.user
+        password_actual = request.data.get('password_actual')
+        password_nueva = request.data.get('password_nueva')
+        password_confirmacion = request.data.get('password_confirmacion')
+
+        # Validaciones
+        if not password_actual or not password_nueva or not password_confirmacion:
+            return Response(
+                {'error': 'Todos los campos son requeridos'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Verificar contraseña actual
+        if not usuario.check_password(password_actual):
+            return Response(
+                {'error': 'La contraseña actual es incorrecta'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Verificar que las nuevas contraseñas coincidan
+        if password_nueva != password_confirmacion:
+            return Response(
+                {'error': 'Las contraseñas nuevas no coinciden'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Validar longitud mínima
+        if len(password_nueva) < 8:
+            return Response(
+                {'error': 'La contraseña debe tener al menos 8 caracteres'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Validar que no sea igual a la actual
+        if password_actual == password_nueva:
+            return Response(
+                {'error': 'La nueva contraseña debe ser diferente a la actual'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Cambiar la contraseña
+        usuario.set_password(password_nueva)
+        usuario.save()
+
+        return Response({
+            'message': 'Contraseña actualizada exitosamente'
+        })
+
+    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
+    def actualizar_token_fcm(self, request):
+        """Actualizar token FCM para notificaciones push"""
+        usuario = request.user
+        fcm_token = request.data.get('fcm_token')
+
+        if not fcm_token:
+            return Response(
+                {'error': 'fcm_token es requerido'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        usuario.fcm_token = fcm_token
+        usuario.save()
+
+        return Response({
+            'message': 'Token FCM actualizado exitosamente'
+        })
+
+    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
+    def eliminar_token_fcm(self, request):
+        """Eliminar token FCM (cuando cierra sesión o desinstala app)"""
+        usuario = request.user
+        usuario.fcm_token = None
+        usuario.save()
+
+        return Response({
+            'message': 'Token FCM eliminado exitosamente'
+        })

@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'django_filters',
+    'apps.core',
     'apps.usuarios',
     'apps.productos',
     'apps.categorias',
@@ -182,3 +183,7 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
 }
+
+# Firebase Configuration
+import os
+FIREBASE_CREDENTIAL_PATH = os.path.join(BASE_DIR, 'firebase', 'project-boutique-firebase-adminsdk-fbsvc-7169b4f99d.json')

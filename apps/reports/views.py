@@ -44,7 +44,7 @@ class GenerateReportView(APIView):
         try:
             # Llamar a la URL de n8n para generar el reporte
             response = requests.post(
-                'https://albatab.app.n8n.cloud/webhook-test/report/nlp',
+                'https://albatab.app.n8n.cloud/webhook/report/nlp',
                 json={
                     'query': query,
                     'email': user_email

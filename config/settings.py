@@ -7,8 +7,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Seguridad
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-$^rv^)b0v*tjp%9hyyubv5ym$m$wm-p-&m#3&n@jlfs0qfgc=b')
 DEBUG = config('DEBUG', default=True, cast=bool)
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
+ALLOWED_HOSTS = [
+    "albadev.me",
+    "api.albadev.me",
+    "localhost",
+    "127.0.0.1",
+    "18.191.244.97",
+]
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://albadev.me",
+    "https://api.albadev.me",
+]
 # AWS S3 Configuration
 AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID', default='tu_access_key')
 AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY', default='tu_secret_key')

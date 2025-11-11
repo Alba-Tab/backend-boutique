@@ -3,7 +3,9 @@ Script para poblar la base de datos con datos de prueba
 Ejecutar: python populate_data.py
 """
 import os
+import sys
 import django
+from django.db import transaction
 
 # Configurar Django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
@@ -12,6 +14,8 @@ django.setup()
 from apps.categorias.models import Categoria
 from apps.productos.models import Producto
 from apps.producto_variante.models import VarianteProducto
+from decimal import Decimal
+import random
 
 def limpiar_datos():
     """Eliminar todos los datos existentes"""
@@ -23,6 +27,7 @@ def limpiar_datos():
         print("✅ Datos limpiados\n")
     except Exception as e:
         print(f"⚠️  Error limpiando datos: {e}\n")
+        raise
 
 def crear_categorias():
     """Crear categorías"""
@@ -237,10 +242,10 @@ def crear_variantes(productos):
         for i, talla in enumerate(tallas_seleccionadas):
             try:
                 # Variar precio ligeramente
-                precio = precio_base + (i * 10)
+                precio = Decimal(str(precio_base + (i * 10)))
 
-                # Variar stock
-                stock = 15 + (i * 5)
+                # Variar stock aleatoriamente
+                stock = random.randint(10, 50)
 
                 variante = VarianteProducto.objects.create(
                     producto=producto,
@@ -252,48 +257,55 @@ def crear_variantes(productos):
                 variantes_creadas.append(variante)
             except Exception as e:
                 print(f"  ✗ Error creando variante {talla} de {producto.nombre}: {e}")
+                raise
 
     print(f"✅ {len(variantes_creadas)} variantes creadas\n")
     return variantes_creadas
 
 def main():
-    """Función principal"""
+    """Función principal con transacción atómica"""
     print("\n" + "="*60)
     print("🚀 INICIANDO POBLACIÓN DE DATOS")
     print("="*60 + "\n")
 
     try:
-        # Limpiar datos anteriores
-        limpiar_datos()
+        # Usar transacción atómica: todo o nada
+        with transaction.atomic():
+            print("🔒 Transacción iniciada (Rollback automático si falla)\n")
 
-        # Crear datos
-        categorias = crear_categorias()
-        if not categorias:
-            print("❌ No se pudieron crear categorías. Abortando...")
-            return
+            # Limpiar datos anteriores
+            limpiar_datos()
 
-        productos = crear_productos(categorias)
-        if not productos:
-            print("❌ No se pudieron crear productos. Abortando...")
-            return
+            # Crear datos
+            categorias = crear_categorias()
+            if not categorias:
+                raise Exception("No se pudieron crear categorías")
 
-        variantes = crear_variantes(productos)
+            productos = crear_productos(categorias)
+            if not productos:
+                raise Exception("No se pudieron crear productos")
 
-        # Resumen
-        print("="*60)
-        print("✅ POBLACIÓN COMPLETADA")
-        print("="*60)
-        print(f"📁 Categorías: {len(categorias)}")
-        print(f"👕 Productos: {len(productos)}")
-        print(f"🔢 Variantes: {len(variantes)}")
-        print("="*60 + "\n")
+            variantes = crear_variantes(productos)
+            if not variantes:
+                raise Exception("No se pudieron crear variantes")
+
+            # Si llegamos aquí, todo salió bien
+            print("="*60)
+            print("✅ POBLACIÓN COMPLETADA EXITOSAMENTE")
+            print("="*60)
+            print(f"📁 Categorías: {len(categorias)}")
+            print(f"👕 Productos: {len(productos)}")
+            print(f"🔢 Variantes: {len(variantes)}")
+            print("="*60 + "\n")
 
     except Exception as e:
         print("\n" + "="*60)
-        print("❌ ERROR EN LA POBLACIÓN")
+        print("❌ ERROR - ROLLBACK EJECUTADO")
         print("="*60)
         print(f"Error: {e}")
+        print("🔄 Todos los cambios fueron revertidos")
         print("="*60 + "\n")
+        sys.exit(1)
 
 if __name__ == '__main__':
     main()

@@ -48,6 +48,13 @@ db.sqlite3-journal
 .env.*.local
 *.env
 
+# Firebase credentials
+firebase/
+*.json
+!package.json
+!package-lock.json
+*firebase-adminsdk*.json
+
 # IDE
 .vscode/
 .idea/

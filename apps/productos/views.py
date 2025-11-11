@@ -12,6 +12,34 @@ class ProductoViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['categoria', 'marca', 'genero']
 
+    def get_queryset(self):
+        """
+        Sobreescribe queryset para filtrar por características de variantes
+        """
+        queryset = super().get_queryset()
+
+        # Filtro por talla de variante
+        talla = self.request.query_params.get('talla')
+        if talla:
+            queryset = queryset.filter(variantes__talla=talla).distinct()
+
+        # Filtro por precio mínimo
+        precio_min = self.request.query_params.get('precio_min')
+        if precio_min:
+            queryset = queryset.filter(variantes__precio__gte=precio_min).distinct()
+
+        # Filtro por precio máximo
+        precio_max = self.request.query_params.get('precio_max')
+        if precio_max:
+            queryset = queryset.filter(variantes__precio__lte=precio_max).distinct()
+
+        # Filtro por stock disponible
+        en_stock = self.request.query_params.get('en_stock')
+        if en_stock == 'true':
+            queryset = queryset.filter(variantes__stock__gt=0).distinct()
+
+        return queryset
+
     @action(detail=True, methods=['get'])
     def variantes(self, request, pk=None):
         """

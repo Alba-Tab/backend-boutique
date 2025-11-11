@@ -4,6 +4,7 @@ from decimal import Decimal
 from datetime import timedelta
 
 from apps.cuota.models import CuotaCredito
+from apps.core.services.notifications_service import NotificationService
 
 from .models import Venta, DetalleVenta
 from apps.producto_variante.models import VarianteProducto
@@ -179,6 +180,26 @@ class VentaService:
         if tipo_venta == 'credito':
             print("📅 Creando cuotas...")
             VentaService._crear_cuotas(venta, plazo_meses, cuota_mensual)
+
+        # 🔔 Enviar notificación al cliente si tiene token FCM
+        if venta.cliente and venta.cliente.fcm_token:
+            try:
+                NotificationService.send_to_user(
+                    usuario=venta.cliente,
+                    title="🛍️ Pedido Recibido",
+                    body=f"Tu pedido #{venta.id} por ${venta.total} ha sido registrado exitosamente",
+                    data={
+                        'type': 'orden_creada',
+                        'venta_id': str(venta.id),
+                        'total': str(venta.total),
+                        'tipo_venta': venta.tipo_venta,
+                        'origen': venta.origen
+                    }
+                )
+                print(f"✅ Notificación enviada al cliente {venta.cliente.username}")
+            except Exception as e:
+                # No romper la transacción si falla la notificación
+                print(f"⚠️ Error enviando notificación: {str(e)}")
 
         print(f"🎉 Venta #{venta.pk} completada exitosamente")
         return venta

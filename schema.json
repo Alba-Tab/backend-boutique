@@ -1,0 +1,1471 @@
+{
+  "project_metadata": {
+    "project_name": "Backend Boutique - Sistema de Ventas E-Commerce",
+    "database_engine": "PostgreSQL",
+    "orm": "Django ORM 5.2.7",
+    "database_name": "boutique_db",
+    "timezone": "America/La_Paz",
+    "encoding": "UTF-8",
+    "language": "es-es",
+    "framework": "Django REST Framework con JWT Authentication",
+    "version": "1.0.0",
+    "description": "Sistema de gestión de ventas, inventario y créditos para boutique con soporte para e-commerce y tienda física"
+  },
+  "database_schema": {
+    "usuarios_usuario": {
+      "table_name": "usuarios_usuario",
+      "description": "Tabla de usuarios del sistema (heredada de AbstractUser de Django). Gestiona clientes, vendedores y administradores",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "primary_key": true,
+          "auto_increment": true,
+          "description": "Identificador único del usuario"
+        },
+        {
+          "name": "password",
+          "type": "VARCHAR",
+          "length": 128,
+          "nullable": false,
+          "description": "Contraseña hasheada del usuario"
+        },
+        {
+          "name": "last_login",
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "description": "Fecha y hora del último inicio de sesión"
+        },
+        {
+          "name": "is_superuser",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "default": false,
+          "description": "Indica si el usuario tiene permisos de superusuario"
+        },
+        {
+          "name": "username",
+          "type": "VARCHAR",
+          "length": 150,
+          "nullable": false,
+          "unique": true,
+          "description": "Nombre de usuario único"
+        },
+        {
+          "name": "first_name",
+          "type": "VARCHAR",
+          "length": 150,
+          "nullable": true,
+          "description": "Nombre del usuario"
+        },
+        {
+          "name": "last_name",
+          "type": "VARCHAR",
+          "length": 150,
+          "nullable": true,
+          "description": "Apellido del usuario"
+        },
+        {
+          "name": "email",
+          "type": "VARCHAR",
+          "length": 254,
+          "nullable": true,
+          "description": "Correo electrónico del usuario"
+        },
+        {
+          "name": "is_staff",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "default": false,
+          "description": "Indica si el usuario puede acceder al panel de administración"
+        },
+        {
+          "name": "is_active",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "default": true,
+          "description": "Indica si la cuenta está activa"
+        },
+        {
+          "name": "date_joined",
+          "type": "TIMESTAMP",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP",
+          "description": "Fecha de registro del usuario"
+        },
+        {
+          "name": "rol",
+          "type": "VARCHAR",
+          "length": 20,
+          "nullable": false,
+          "default": "'cliente'",
+          "check_constraint": "rol IN ('cliente', 'vendedor', 'admin')",
+          "description": "Rol del usuario en el sistema"
+        },
+        {
+          "name": "telefono",
+          "type": "VARCHAR",
+          "length": 20,
+          "nullable": true,
+          "description": "Número de teléfono del usuario"
+        },
+        {
+          "name": "activo",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "default": true,
+          "description": "Estado de actividad personalizado del usuario"
+        }
+      ],
+      "primary_key": ["id"],
+      "unique_constraints": ["username"],
+      "indexes": [
+        {
+          "name": "idx_usuario_username",
+          "columns": ["username"],
+          "unique": true
+        },
+        {
+          "name": "idx_usuario_rol",
+          "columns": ["rol"]
+        },
+        {
+          "name": "idx_usuario_email",
+          "columns": ["email"]
+        }
+      ],
+      "related_tables": ["auth_group", "auth_permission"]
+    },
+    "categorias_categoria": {
+      "table_name": "categorias_categoria",
+      "description": "Categorías de productos disponibles en la boutique",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "primary_key": true,
+          "auto_increment": true,
+          "description": "Identificador único de la categoría"
+        },
+        {
+          "name": "nombre",
+          "type": "VARCHAR",
+          "length": 30,
+          "nullable": false,
+          "description": "Nombre de la categoría"
+        },
+        {
+          "name": "descripcion",
+          "type": "VARCHAR",
+          "length": 120,
+          "nullable": false,
+          "description": "Descripción de la categoría"
+        }
+      ],
+      "primary_key": ["id"],
+      "indexes": [
+        {
+          "name": "idx_categoria_nombre",
+          "columns": ["nombre"]
+        }
+      ]
+    },
+    "productos_producto": {
+      "table_name": "productos_producto",
+      "description": "Catálogo de productos de la boutique",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "primary_key": true,
+          "auto_increment": true,
+          "description": "Identificador único del producto"
+        },
+        {
+          "name": "nombre",
+          "type": "VARCHAR",
+          "length": 100,
+          "nullable": false,
+          "description": "Nombre del producto"
+        },
+        {
+          "name": "descripcion",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "Descripción detallada del producto"
+        },
+        {
+          "name": "genero",
+          "type": "VARCHAR",
+          "length": 50,
+          "nullable": false,
+          "description": "Género al que está dirigido el producto (hombre, mujer, unisex)"
+        },
+        {
+          "name": "image",
+          "type": "VARCHAR",
+          "length": 100,
+          "nullable": false,
+          "description": "Ruta de la imagen del producto en S3"
+        },
+        {
+          "name": "marca",
+          "type": "VARCHAR",
+          "length": 100,
+          "nullable": false,
+          "description": "Marca del producto"
+        },
+        {
+          "name": "categoria_id",
+          "type": "BIGINT",
+          "nullable": false,
+          "description": "ID de la categoría a la que pertenece el producto"
+        }
+      ],
+      "primary_key": ["id"],
+      "foreign_keys": [
+        {
+          "column": "categoria_id",
+          "references_table": "categorias_categoria",
+          "references_column": "id",
+          "on_delete": "CASCADE"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_producto_categoria",
+          "columns": ["categoria_id"]
+        },
+        {
+          "name": "idx_producto_nombre",
+          "columns": ["nombre"]
+        },
+        {
+          "name": "idx_producto_genero",
+          "columns": ["genero"]
+        }
+      ]
+    },
+    "producto_variante_varianteproducto": {
+      "table_name": "producto_variante_varianteproducto",
+      "description": "Variantes de productos con diferentes tallas, precios y stock específico",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "primary_key": true,
+          "auto_increment": true,
+          "description": "Identificador único de la variante"
+        },
+        {
+          "name": "producto_id",
+          "type": "BIGINT",
+          "nullable": false,
+          "description": "ID del producto al que pertenece esta variante"
+        },
+        {
+          "name": "talla",
+          "type": "VARCHAR",
+          "length": 10,
+          "nullable": true,
+          "description": "Talla del producto (S, M, L, XL, etc.)"
+        },
+        {
+          "name": "precio",
+          "type": "NUMERIC",
+          "precision": 10,
+          "scale": 2,
+          "nullable": false,
+          "description": "Precio de venta de la variante"
+        },
+        {
+          "name": "stock",
+          "type": "INTEGER",
+          "nullable": false,
+          "check_constraint": "stock >= 0",
+          "description": "Cantidad disponible en inventario"
+        },
+        {
+          "name": "stock_minimo",
+          "type": "INTEGER",
+          "nullable": false,
+          "check_constraint": "stock_minimo >= 0",
+          "description": "Nivel mínimo de stock para alertas"
+        }
+      ],
+      "primary_key": ["id"],
+      "foreign_keys": [
+        {
+          "column": "producto_id",
+          "references_table": "productos_producto",
+          "references_column": "id",
+          "on_delete": "CASCADE"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_variante_producto",
+          "columns": ["producto_id"]
+        },
+        {
+          "name": "idx_variante_stock",
+          "columns": ["stock"]
+        }
+      ],
+      "check_constraints": ["stock >= 0", "stock_minimo >= 0", "precio >= 0"]
+    },
+    "venta_venta": {
+      "table_name": "venta_venta",
+      "description": "Registro de ventas realizadas tanto en tienda física como en e-commerce",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "primary_key": true,
+          "auto_increment": true,
+          "description": "Identificador único de la venta"
+        },
+        {
+          "name": "cliente_id",
+          "type": "BIGINT",
+          "nullable": true,
+          "description": "ID del usuario cliente (si está registrado)"
+        },
+        {
+          "name": "vendedor_id",
+          "type": "BIGINT",
+          "nullable": true,
+          "description": "ID del usuario vendedor que realizó la venta"
+        },
+        {
+          "name": "correo_cliente",
+          "type": "VARCHAR",
+          "length": 254,
+          "nullable": true,
+          "description": "Correo electrónico del cliente (para ventas sin registro)"
+        },
+        {
+          "name": "direccion_cliente",
+          "type": "TEXT",
+          "nullable": true,
+          "description": "Dirección de envío del cliente"
+        },
+        {
+          "name": "nombre_cliente",
+          "type": "VARCHAR",
+          "length": 100,
+          "nullable": true,
+          "description": "Nombre completo del cliente"
+        },
+        {
+          "name": "telefono_cliente",
+          "type": "VARCHAR",
+          "length": 20,
+          "nullable": true,
+          "description": "Teléfono del cliente"
+        },
+        {
+          "name": "numero_cliente",
+          "type": "VARCHAR",
+          "length": 50,
+          "nullable": true,
+          "description": "Número de documento del cliente"
+        },
+        {
+          "name": "nombre_vendedor",
+          "type": "VARCHAR",
+          "length": 100,
+          "nullable": true,
+          "description": "Nombre del vendedor (desnormalizado)"
+        },
+        {
+          "name": "estado",
+          "type": "VARCHAR",
+          "length": 50,
+          "nullable": false,
+          "default": "'pendiente'",
+          "description": "Estado de la venta (pendiente, completada, cancelada, etc.)"
+        },
+        {
+          "name": "fecha",
+          "type": "DATE",
+          "nullable": false,
+          "description": "Fecha de la venta"
+        },
+        {
+          "name": "tipo_venta",
+          "type": "VARCHAR",
+          "length": 20,
+          "nullable": false,
+          "check_constraint": "tipo_venta IN ('contado', 'credito')",
+          "description": "Tipo de venta: contado o crédito"
+        },
+        {
+          "name": "origen",
+          "type": "VARCHAR",
+          "length": 20,
+          "nullable": false,
+          "default": "'tienda'",
+          "check_constraint": "origen IN ('tienda', 'ecommerce')",
+          "description": "Origen de la venta: tienda física o ecommerce"
+        },
+        {
+          "name": "plazo_meses",
+          "type": "INTEGER",
+          "nullable": true,
+          "check_constraint": "plazo_meses > 0",
+          "description": "Número de meses para ventas a crédito"
+        },
+        {
+          "name": "interes",
+          "type": "NUMERIC",
+          "precision": 5,
+          "scale": 2,
+          "nullable": true,
+          "description": "Porcentaje de interés aplicado (para ventas a crédito)"
+        },
+        {
+          "name": "total",
+          "type": "NUMERIC",
+          "precision": 10,
+          "scale": 2,
+          "nullable": false,
+          "default": "0.00",
+          "description": "Monto total de la venta sin intereses"
+        },
+        {
+          "name": "total_con_interes",
+          "type": "NUMERIC",
+          "precision": 10,
+          "scale": 2,
+          "nullable": false,
+          "default": "0.00",
+          "description": "Monto total con intereses aplicados"
+        },
+        {
+          "name": "cuota_mensual",
+          "type": "NUMERIC",
+          "precision": 10,
+          "scale": 2,
+          "nullable": false,
+          "default": "0.00",
+          "description": "Monto de cada cuota mensual (para ventas a crédito)"
+        }
+      ],
+      "primary_key": ["id"],
+      "foreign_keys": [
+        {
+          "column": "cliente_id",
+          "references_table": "usuarios_usuario",
+          "references_column": "id",
+          "on_delete": "SET_NULL"
+        },
+        {
+          "column": "vendedor_id",
+          "references_table": "usuarios_usuario",
+          "references_column": "id",
+          "on_delete": "SET_NULL"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_venta_fecha",
+          "columns": ["fecha"]
+        },
+        {
+          "name": "idx_venta_cliente",
+          "columns": ["cliente_id"]
+        },
+        {
+          "name": "idx_venta_vendedor",
+          "columns": ["vendedor_id"]
+        },
+        {
+          "name": "idx_venta_tipo",
+          "columns": ["tipo_venta"]
+        },
+        {
+          "name": "idx_venta_estado",
+          "columns": ["estado"]
+        },
+        {
+          "name": "idx_venta_origen",
+          "columns": ["origen"]
+        }
+      ],
+      "check_constraints": [
+        "tipo_venta IN ('contado', 'credito')",
+        "origen IN ('tienda', 'ecommerce')",
+        "plazo_meses > 0 OR plazo_meses IS NULL"
+      ]
+    },
+    "venta_detalleventa": {
+      "table_name": "venta_detalleventa",
+      "description": "Detalle de productos vendidos en cada venta",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "primary_key": true,
+          "auto_increment": true,
+          "description": "Identificador único del detalle"
+        },
+        {
+          "name": "venta_id",
+          "type": "BIGINT",
+          "nullable": false,
+          "description": "ID de la venta a la que pertenece este detalle"
+        },
+        {
+          "name": "variante_producto_id",
+          "type": "BIGINT",
+          "nullable": false,
+          "description": "ID de la variante del producto vendido"
+        },
+        {
+          "name": "cantidad",
+          "type": "INTEGER",
+          "nullable": false,
+          "check_constraint": "cantidad > 0",
+          "description": "Cantidad de unidades vendidas"
+        },
+        {
+          "name": "precio_unitario",
+          "type": "NUMERIC",
+          "precision": 10,
+          "scale": 2,
+          "nullable": false,
+          "description": "Precio unitario al momento de la venta"
+        },
+        {
+          "name": "sub_total",
+          "type": "NUMERIC",
+          "precision": 10,
+          "scale": 2,
+          "nullable": false,
+          "description": "Subtotal (cantidad * precio_unitario)"
+        },
+        {
+          "name": "nombre_producto",
+          "type": "VARCHAR",
+          "length": 100,
+          "nullable": false,
+          "description": "Nombre del producto (desnormalizado)"
+        },
+        {
+          "name": "talla",
+          "type": "VARCHAR",
+          "length": 10,
+          "nullable": true,
+          "description": "Talla del producto vendido (desnormalizado)"
+        }
+      ],
+      "primary_key": ["id"],
+      "foreign_keys": [
+        {
+          "column": "venta_id",
+          "references_table": "venta_venta",
+          "references_column": "id",
+          "on_delete": "CASCADE"
+        },
+        {
+          "column": "variante_producto_id",
+          "references_table": "producto_variante_varianteproducto",
+          "references_column": "id",
+          "on_delete": "PROTECT"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_detalle_venta",
+          "columns": ["venta_id"]
+        },
+        {
+          "name": "idx_detalle_variante",
+          "columns": ["variante_producto_id"]
+        }
+      ],
+      "check_constraints": ["cantidad > 0"]
+    },
+    "cuota_cuotacredito": {
+      "table_name": "cuota_cuotacredito",
+      "description": "Cuotas mensuales para ventas a crédito",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "primary_key": true,
+          "auto_increment": true,
+          "description": "Identificador único de la cuota"
+        },
+        {
+          "name": "venta_id",
+          "type": "BIGINT",
+          "nullable": false,
+          "description": "ID de la venta a crédito"
+        },
+        {
+          "name": "numero_cuota",
+          "type": "INTEGER",
+          "nullable": false,
+          "description": "Número de la cuota (1, 2, 3...)"
+        },
+        {
+          "name": "fecha_vencimiento",
+          "type": "DATE",
+          "nullable": false,
+          "description": "Fecha de vencimiento de la cuota"
+        },
+        {
+          "name": "monto_cuota",
+          "type": "NUMERIC",
+          "precision": 10,
+          "scale": 2,
+          "nullable": false,
+          "description": "Monto de la cuota"
+        },
+        {
+          "name": "estado",
+          "type": "VARCHAR",
+          "length": 10,
+          "nullable": false,
+          "default": "'pendiente'",
+          "check_constraint": "estado IN ('pendiente', 'pagada', 'vencida')",
+          "description": "Estado de la cuota"
+        },
+        {
+          "name": "fecha_pago",
+          "type": "DATE",
+          "nullable": true,
+          "description": "Fecha en que se pagó la cuota"
+        }
+      ],
+      "primary_key": ["id"],
+      "foreign_keys": [
+        {
+          "column": "venta_id",
+          "references_table": "venta_venta",
+          "references_column": "id",
+          "on_delete": "CASCADE"
+        }
+      ],
+      "unique_constraints": [
+        {
+          "name": "unique_venta_numero_cuota",
+          "columns": ["venta_id", "numero_cuota"]
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_cuota_venta",
+          "columns": ["venta_id"]
+        },
+        {
+          "name": "idx_cuota_estado",
+          "columns": ["estado"]
+        },
+        {
+          "name": "idx_cuota_fecha_vencimiento",
+          "columns": ["fecha_vencimiento"]
+        }
+      ],
+      "check_constraints": ["estado IN ('pendiente', 'pagada', 'vencida')"]
+    },
+    "pago_pago": {
+      "table_name": "pago_pago",
+      "description": "Registro de pagos realizados para ventas (contado o cuotas de crédito)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "primary_key": true,
+          "auto_increment": true,
+          "description": "Identificador único del pago"
+        },
+        {
+          "name": "venta_id",
+          "type": "BIGINT",
+          "nullable": false,
+          "description": "ID de la venta asociada al pago"
+        },
+        {
+          "name": "cuota_id",
+          "type": "BIGINT",
+          "nullable": true,
+          "description": "ID de la cuota específica pagada (opcional, para créditos)"
+        },
+        {
+          "name": "fecha_pago",
+          "type": "TIMESTAMP",
+          "nullable": false,
+          "description": "Fecha y hora del pago"
+        },
+        {
+          "name": "monto_pagado",
+          "type": "NUMERIC",
+          "precision": 10,
+          "scale": 2,
+          "nullable": false,
+          "description": "Monto pagado"
+        },
+        {
+          "name": "metodo_pago",
+          "type": "VARCHAR",
+          "length": 50,
+          "nullable": false,
+          "check_constraint": "metodo_pago IN ('efectivo', 'tarjeta', 'qr')",
+          "description": "Método de pago utilizado"
+        },
+        {
+          "name": "referencia_pago",
+          "type": "VARCHAR",
+          "length": 100,
+          "nullable": true,
+          "description": "Número de transacción, voucher u otra referencia"
+        }
+      ],
+      "primary_key": ["id"],
+      "foreign_keys": [
+        {
+          "column": "venta_id",
+          "references_table": "venta_venta",
+          "references_column": "id",
+          "on_delete": "CASCADE"
+        },
+        {
+          "column": "cuota_id",
+          "references_table": "cuota_cuotacredito",
+          "references_column": "id",
+          "on_delete": "SET_NULL"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_pago_venta",
+          "columns": ["venta_id"]
+        },
+        {
+          "name": "idx_pago_cuota",
+          "columns": ["cuota_id"]
+        },
+        {
+          "name": "idx_pago_fecha",
+          "columns": ["fecha_pago"]
+        },
+        {
+          "name": "idx_pago_metodo",
+          "columns": ["metodo_pago"]
+        }
+      ],
+      "check_constraints": ["metodo_pago IN ('efectivo', 'tarjeta', 'qr')"]
+    },
+    "auth_group": {
+      "table_name": "auth_group",
+      "description": "Grupos de permisos de Django (tabla estándar del framework)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": true,
+          "auto_increment": true
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR",
+          "length": 150,
+          "nullable": false,
+          "unique": true
+        }
+      ],
+      "primary_key": ["id"]
+    },
+    "auth_permission": {
+      "table_name": "auth_permission",
+      "description": "Permisos de Django (tabla estándar del framework)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": true,
+          "auto_increment": true
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR",
+          "length": 255,
+          "nullable": false
+        },
+        {
+          "name": "content_type_id",
+          "type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "codename",
+          "type": "VARCHAR",
+          "length": 100,
+          "nullable": false
+        }
+      ],
+      "primary_key": ["id"]
+    },
+    "django_content_type": {
+      "table_name": "django_content_type",
+      "description": "Tipos de contenido de Django (tabla estándar del framework)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": true,
+          "auto_increment": true
+        },
+        {
+          "name": "app_label",
+          "type": "VARCHAR",
+          "length": 100,
+          "nullable": false
+        },
+        {
+          "name": "model",
+          "type": "VARCHAR",
+          "length": 100,
+          "nullable": false
+        }
+      ],
+      "primary_key": ["id"]
+    },
+    "django_migrations": {
+      "table_name": "django_migrations",
+      "description": "Historial de migraciones aplicadas (tabla estándar del framework)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "primary_key": true,
+          "auto_increment": true
+        },
+        {
+          "name": "app",
+          "type": "VARCHAR",
+          "length": 255,
+          "nullable": false
+        },
+        {
+          "name": "name",
+          "type": "VARCHAR",
+          "length": 255,
+          "nullable": false
+        },
+        {
+          "name": "applied",
+          "type": "TIMESTAMP",
+          "nullable": false
+        }
+      ],
+      "primary_key": ["id"]
+    },
+    "django_session": {
+      "table_name": "django_session",
+      "description": "Sesiones de usuario (tabla estándar del framework)",
+      "columns": [
+        {
+          "name": "session_key",
+          "type": "VARCHAR",
+          "length": 40,
+          "nullable": false,
+          "primary_key": true
+        },
+        {
+          "name": "session_data",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "expire_date",
+          "type": "TIMESTAMP",
+          "nullable": false
+        }
+      ],
+      "primary_key": ["session_key"]
+    },
+    "token_blacklist_outstandingtoken": {
+      "table_name": "token_blacklist_outstandingtoken",
+      "description": "Tokens JWT pendientes (para rotación de tokens)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "primary_key": true,
+          "auto_increment": true
+        },
+        {
+          "name": "user_id",
+          "type": "BIGINT",
+          "nullable": true
+        },
+        {
+          "name": "jti",
+          "type": "VARCHAR",
+          "length": 255,
+          "nullable": false,
+          "unique": true
+        },
+        {
+          "name": "token",
+          "type": "TEXT",
+          "nullable": false
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "nullable": false
+        },
+        {
+          "name": "expires_at",
+          "type": "TIMESTAMP",
+          "nullable": false
+        }
+      ],
+      "primary_key": ["id"]
+    },
+    "token_blacklist_blacklistedtoken": {
+      "table_name": "token_blacklist_blacklistedtoken",
+      "description": "Tokens JWT en lista negra (revocados)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT",
+          "nullable": false,
+          "primary_key": true,
+          "auto_increment": true
+        },
+        {
+          "name": "token_id",
+          "type": "BIGINT",
+          "nullable": false,
+          "unique": true
+        },
+        {
+          "name": "blacklisted_at",
+          "type": "TIMESTAMP",
+          "nullable": false
+        }
+      ],
+      "primary_key": ["id"]
+    }
+  },
+  "relationships": {
+    "usuario_grupos_permisos": {
+      "type": "MANY_TO_MANY",
+      "description": "Relación entre usuarios y grupos/permisos de Django",
+      "from_table": "usuarios_usuario",
+      "to_table": "auth_group",
+      "through_table": "usuarios_usuario_groups",
+      "note": "Gestionada por Django, permite asignar grupos de permisos a usuarios"
+    },
+    "categoria_productos": {
+      "type": "ONE_TO_MANY",
+      "description": "Una categoría puede tener múltiples productos",
+      "from_table": "categorias_categoria",
+      "from_column": "id",
+      "to_table": "productos_producto",
+      "to_column": "categoria_id",
+      "reverse_relation": "productos",
+      "on_delete": "CASCADE",
+      "note": "Si se elimina una categoría, se eliminan todos sus productos asociados"
+    },
+    "producto_variantes": {
+      "type": "ONE_TO_MANY",
+      "description": "Un producto puede tener múltiples variantes (diferentes tallas/precios)",
+      "from_table": "productos_producto",
+      "from_column": "id",
+      "to_table": "producto_variante_varianteproducto",
+      "to_column": "producto_id",
+      "reverse_relation": "variantes",
+      "on_delete": "CASCADE",
+      "note": "Si se elimina un producto, se eliminan todas sus variantes"
+    },
+    "venta_cliente": {
+      "type": "MANY_TO_ONE",
+      "description": "Múltiples ventas pueden estar asociadas a un mismo cliente",
+      "from_table": "venta_venta",
+      "from_column": "cliente_id",
+      "to_table": "usuarios_usuario",
+      "to_column": "id",
+      "reverse_relation": "ventas_como_cliente",
+      "on_delete": "SET_NULL",
+      "nullable": true,
+      "note": "El cliente puede ser NULL para ventas sin registro. Si se elimina el usuario, las ventas se mantienen pero se pierde la referencia"
+    },
+    "venta_vendedor": {
+      "type": "MANY_TO_ONE",
+      "description": "Múltiples ventas pueden ser realizadas por un mismo vendedor",
+      "from_table": "venta_venta",
+      "from_column": "vendedor_id",
+      "to_table": "usuarios_usuario",
+      "to_column": "id",
+      "reverse_relation": "ventas_como_vendedor",
+      "on_delete": "SET_NULL",
+      "nullable": true,
+      "note": "El vendedor puede ser NULL para ventas de e-commerce. Si se elimina el vendedor, las ventas se mantienen"
+    },
+    "venta_detalles": {
+      "type": "ONE_TO_MANY",
+      "description": "Una venta puede tener múltiples detalles (líneas de productos)",
+      "from_table": "venta_venta",
+      "from_column": "id",
+      "to_table": "venta_detalleventa",
+      "to_column": "venta_id",
+      "reverse_relation": "detalles",
+      "on_delete": "CASCADE",
+      "note": "Si se elimina una venta, se eliminan todos sus detalles"
+    },
+    "detalle_variante": {
+      "type": "MANY_TO_ONE",
+      "description": "Cada detalle de venta referencia una variante específica del producto",
+      "from_table": "venta_detalleventa",
+      "from_column": "variante_producto_id",
+      "to_table": "producto_variante_varianteproducto",
+      "to_column": "id",
+      "on_delete": "PROTECT",
+      "note": "No se puede eliminar una variante si está referenciada en ventas (PROTECT)"
+    },
+    "venta_cuotas": {
+      "type": "ONE_TO_MANY",
+      "description": "Una venta a crédito puede tener múltiples cuotas mensuales",
+      "from_table": "venta_venta",
+      "from_column": "id",
+      "to_table": "cuota_cuotacredito",
+      "to_column": "venta_id",
+      "reverse_relation": "cuotas",
+      "on_delete": "CASCADE",
+      "note": "Solo aplica para tipo_venta='credito'. Si se elimina una venta, se eliminan todas sus cuotas"
+    },
+    "venta_pagos": {
+      "type": "ONE_TO_MANY",
+      "description": "Una venta puede tener múltiples pagos (parciales o totales)",
+      "from_table": "venta_venta",
+      "from_column": "id",
+      "to_table": "pago_pago",
+      "to_column": "venta_id",
+      "reverse_relation": "pagos",
+      "on_delete": "CASCADE",
+      "note": "Si se elimina una venta, se eliminan todos sus pagos"
+    },
+    "cuota_pagos": {
+      "type": "ONE_TO_MANY",
+      "description": "Una cuota puede tener múltiples pagos (opcional)",
+      "from_table": "cuota_cuotacredito",
+      "from_column": "id",
+      "to_table": "pago_pago",
+      "to_column": "cuota_id",
+      "reverse_relation": "pagos",
+      "on_delete": "SET_NULL",
+      "nullable": true,
+      "note": "El pago puede no estar asociado a una cuota específica (ventas al contado)"
+    }
+  },
+  "example_queries": {
+    "ventas_por_mes": {
+      "description": "Obtener total de ventas agrupadas por mes",
+      "sql": "SELECT DATE_TRUNC('month', fecha) AS mes, COUNT(*) AS total_ventas, SUM(total_con_interes) AS monto_total FROM venta_venta GROUP BY DATE_TRUNC('month', fecha) ORDER BY mes DESC;",
+      "use_case": "Reportes mensuales de ventas"
+    },
+    "productos_bajo_stock": {
+      "description": "Listar productos con stock menor o igual al stock mínimo",
+      "sql": "SELECT p.nombre AS producto, vp.talla, vp.stock, vp.stock_minimo, vp.precio FROM producto_variante_varianteproducto vp JOIN productos_producto p ON vp.producto_id = p.id WHERE vp.stock <= vp.stock_minimo ORDER BY vp.stock ASC;",
+      "use_case": "Alerta de inventario bajo"
+    },
+    "clientes_nuevos_trimestre": {
+      "description": "Clientes registrados en los últimos 3 meses",
+      "sql": "SELECT id, username, email, first_name, last_name, date_joined FROM usuarios_usuario WHERE rol = 'cliente' AND date_joined >= CURRENT_DATE - INTERVAL '3 months' ORDER BY date_joined DESC;",
+      "use_case": "Análisis de crecimiento de clientes"
+    },
+    "ventas_por_vendedor": {
+      "description": "Total de ventas y monto generado por cada vendedor",
+      "sql": "SELECT u.username, u.first_name, u.last_name, COUNT(v.id) AS total_ventas, SUM(v.total_con_interes) AS monto_total FROM venta_venta v LEFT JOIN usuarios_usuario u ON v.vendedor_id = u.id WHERE u.rol = 'vendedor' GROUP BY u.id, u.username, u.first_name, u.last_name ORDER BY monto_total DESC;",
+      "use_case": "Comisiones y evaluación de vendedores"
+    },
+    "cuotas_vencidas": {
+      "description": "Cuotas vencidas pendientes de pago",
+      "sql": "SELECT c.id, c.venta_id, v.nombre_cliente, c.numero_cuota, c.fecha_vencimiento, c.monto_cuota, CURRENT_DATE - c.fecha_vencimiento AS dias_vencidos FROM cuota_cuotacredito c JOIN venta_venta v ON c.venta_id = v.id WHERE c.estado = 'pendiente' AND c.fecha_vencimiento < CURRENT_DATE ORDER BY c.fecha_vencimiento ASC;",
+      "use_case": "Gestión de cobros y morosidad"
+    },
+    "productos_mas_vendidos": {
+      "description": "Top 10 productos más vendidos",
+      "sql": "SELECT dv.nombre_producto, SUM(dv.cantidad) AS total_vendido, SUM(dv.sub_total) AS ingresos_totales FROM venta_detalleventa dv GROUP BY dv.nombre_producto ORDER BY total_vendido DESC LIMIT 10;",
+      "use_case": "Análisis de productos populares"
+    },
+    "ventas_por_origen": {
+      "description": "Comparativa de ventas entre tienda física y ecommerce",
+      "sql": "SELECT origen, COUNT(*) AS total_ventas, SUM(total_con_interes) AS monto_total, AVG(total_con_interes) AS ticket_promedio FROM venta_venta GROUP BY origen ORDER BY monto_total DESC;",
+      "use_case": "Análisis de canales de venta"
+    },
+    "estado_creditos": {
+      "description": "Resumen de ventas a crédito y su estado de pago",
+      "sql": "SELECT v.id, v.nombre_cliente, v.fecha, v.total_con_interes, v.plazo_meses, COUNT(c.id) AS total_cuotas, SUM(CASE WHEN c.estado = 'pagada' THEN 1 ELSE 0 END) AS cuotas_pagadas, SUM(CASE WHEN c.estado = 'vencida' THEN 1 ELSE 0 END) AS cuotas_vencidas FROM venta_venta v LEFT JOIN cuota_cuotacredito c ON v.id = c.venta_id WHERE v.tipo_venta = 'credito' GROUP BY v.id ORDER BY v.fecha DESC;",
+      "use_case": "Monitoreo de cartera de créditos"
+    },
+    "ventas_con_detalle_completo": {
+      "description": "Vista completa de una venta con todos sus detalles",
+      "sql": "SELECT v.id AS venta_id, v.fecha, v.nombre_cliente, v.total, v.tipo_venta, v.origen, dv.nombre_producto, dv.talla, dv.cantidad, dv.precio_unitario, dv.sub_total FROM venta_venta v JOIN venta_detalleventa dv ON v.id = dv.venta_id WHERE v.id = 1;",
+      "use_case": "Detalle completo de venta para facturación"
+    },
+    "pagos_por_metodo": {
+      "description": "Resumen de pagos agrupados por método",
+      "sql": "SELECT metodo_pago, COUNT(*) AS cantidad_transacciones, SUM(monto_pagado) AS total_recaudado FROM pago_pago GROUP BY metodo_pago ORDER BY total_recaudado DESC;",
+      "use_case": "Análisis de métodos de pago preferidos"
+    },
+    "productos_por_categoria": {
+      "description": "Cantidad de productos y variantes por categoría",
+      "sql": "SELECT c.nombre AS categoria, COUNT(DISTINCT p.id) AS total_productos, COUNT(vp.id) AS total_variantes, SUM(vp.stock) AS stock_total FROM categorias_categoria c LEFT JOIN productos_producto p ON c.id = p.categoria_id LEFT JOIN producto_variante_varianteproducto vp ON p.id = vp.producto_id GROUP BY c.id, c.nombre ORDER BY total_productos DESC;",
+      "use_case": "Análisis de catálogo"
+    },
+    "clientes_con_deuda": {
+      "description": "Clientes con ventas a crédito y saldo pendiente",
+      "sql": "SELECT v.nombre_cliente, v.correo_cliente, v.telefono_cliente, COUNT(DISTINCT v.id) AS creditos_activos, SUM(v.total_con_interes) AS deuda_total, SUM(CASE WHEN c.estado = 'vencida' THEN c.monto_cuota ELSE 0 END) AS monto_vencido FROM venta_venta v LEFT JOIN cuota_cuotacredito c ON v.id = c.venta_id WHERE v.tipo_venta = 'credito' AND v.estado != 'completada' GROUP BY v.nombre_cliente, v.correo_cliente, v.telefono_cliente ORDER BY deuda_total DESC;",
+      "use_case": "Gestión de cobranza"
+    },
+    "ventas_diarias": {
+      "description": "Ventas realizadas hoy",
+      "sql": "SELECT v.id, v.fecha, v.nombre_cliente, v.tipo_venta, v.origen, v.total, v.estado, u.username AS vendedor FROM venta_venta v LEFT JOIN usuarios_usuario u ON v.vendedor_id = u.id WHERE v.fecha = CURRENT_DATE ORDER BY v.id DESC;",
+      "use_case": "Control diario de ventas"
+    },
+    "insertar_venta": {
+      "description": "Insertar una nueva venta al contado",
+      "sql": "INSERT INTO venta_venta (cliente_id, vendedor_id, nombre_cliente, correo_cliente, telefono_cliente, estado, fecha, tipo_venta, origen, total, total_con_interes, cuota_mensual) VALUES (5, 2, 'Juan Pérez', 'juan@email.com', '12345678', 'pendiente', CURRENT_DATE, 'contado', 'tienda', 150.00, 150.00, 0.00);",
+      "use_case": "Registro de nueva venta"
+    },
+    "actualizar_stock": {
+      "description": "Actualizar stock después de una venta",
+      "sql": "UPDATE producto_variante_varianteproducto SET stock = stock - 2 WHERE id = 10 AND stock >= 2;",
+      "use_case": "Reducción de inventario post-venta"
+    },
+    "ventas_con_interes": {
+      "description": "Calcular ingresos adicionales por intereses de créditos",
+      "sql": "SELECT SUM(total_con_interes - total) AS ingresos_por_interes, COUNT(*) AS total_creditos, AVG(interes) AS interes_promedio FROM venta_venta WHERE tipo_venta = 'credito' AND fecha >= DATE_TRUNC('year', CURRENT_DATE);",
+      "use_case": "Análisis financiero de intereses"
+    }
+  },
+  "ai_recommendations": {
+    "tablas_principales": [
+      {
+        "tabla": "venta_venta",
+        "propósito": "Tabla central del sistema. Registra todas las ventas realizadas tanto en tienda física como e-commerce.",
+        "campos_clave": [
+          "fecha",
+          "tipo_venta",
+          "origen",
+          "estado",
+          "total_con_interes"
+        ],
+        "consultas_comunes": [
+          "Ventas por rango de fechas",
+          "Ventas por tipo (contado/crédito)",
+          "Ventas por origen (tienda/ecommerce)",
+          "Total vendido por periodo"
+        ]
+      },
+      {
+        "tabla": "venta_detalleventa",
+        "propósito": "Detalle de productos vendidos en cada transacción.",
+        "campos_clave": [
+          "venta_id",
+          "nombre_producto",
+          "cantidad",
+          "precio_unitario",
+          "sub_total"
+        ],
+        "consultas_comunes": [
+          "Productos más vendidos",
+          "Cantidad vendida por producto",
+          "Ingresos por producto"
+        ]
+      },
+      {
+        "tabla": "usuarios_usuario",
+        "propósito": "Gestión de usuarios del sistema (clientes, vendedores, administradores).",
+        "campos_clave": ["rol", "username", "email", "activo", "date_joined"],
+        "consultas_comunes": [
+          "Clientes nuevos por periodo",
+          "Usuarios activos por rol",
+          "Vendedores con más ventas"
+        ]
+      },
+      {
+        "tabla": "producto_variante_varianteproducto",
+        "propósito": "Gestión de inventario con variantes de productos (tallas, precios, stock).",
+        "campos_clave": ["stock", "stock_minimo", "precio", "talla"],
+        "consultas_comunes": [
+          "Productos con stock bajo",
+          "Variantes sin stock",
+          "Productos por rango de precio"
+        ]
+      },
+      {
+        "tabla": "cuota_cuotacredito",
+        "propósito": "Gestión de cuotas para ventas a crédito.",
+        "campos_clave": [
+          "venta_id",
+          "numero_cuota",
+          "estado",
+          "fecha_vencimiento",
+          "monto_cuota"
+        ],
+        "consultas_comunes": [
+          "Cuotas vencidas",
+          "Cuotas por cobrar",
+          "Estado de pagos de un cliente"
+        ]
+      },
+      {
+        "tabla": "pago_pago",
+        "propósito": "Registro de todos los pagos recibidos.",
+        "campos_clave": [
+          "venta_id",
+          "cuota_id",
+          "fecha_pago",
+          "monto_pagado",
+          "metodo_pago"
+        ],
+        "consultas_comunes": [
+          "Pagos por fecha",
+          "Pagos por método",
+          "Total recaudado por periodo"
+        ]
+      }
+    ],
+    "patrones_consulta": [
+      {
+        "patrón": "Análisis temporal",
+        "descripción": "Consultas agrupadas por fecha (día, mes, año)",
+        "ejemplos": [
+          "Ventas por mes",
+          "Clientes nuevos por trimestre",
+          "Ingresos anuales"
+        ],
+        "funciones_sql": ["DATE_TRUNC", "EXTRACT", "DATE_PART", "INTERVAL"]
+      },
+      {
+        "patrón": "Agregaciones",
+        "descripción": "Totales, promedios, conteos",
+        "ejemplos": [
+          "Total vendido",
+          "Cantidad de ventas",
+          "Ticket promedio",
+          "Stock total"
+        ],
+        "funciones_sql": ["SUM", "COUNT", "AVG", "MIN", "MAX"]
+      },
+      {
+        "patrón": "Filtrado por estado",
+        "descripción": "Consultas basadas en estados de entidades",
+        "ejemplos": [
+          "Ventas pendientes",
+          "Cuotas vencidas",
+          "Usuarios activos",
+          "Productos sin stock"
+        ],
+        "campos_estado": ["venta.estado", "cuota.estado", "usuario.activo"]
+      },
+      {
+        "patrón": "Joins frecuentes",
+        "descripción": "Relaciones entre tablas más consultadas",
+        "ejemplos": [
+          "venta ↔ usuario (cliente/vendedor)",
+          "venta ↔ detalle_venta",
+          "venta ↔ cuota",
+          "detalle_venta ↔ variante_producto ↔ producto"
+        ]
+      }
+    ],
+    "campos_filtrado_clave": [
+      {
+        "campo": "venta.fecha",
+        "uso": "Filtrar ventas por rango de fechas",
+        "operadores": ["BETWEEN", ">=", "<=", "="],
+        "indexado": true
+      },
+      {
+        "campo": "venta.tipo_venta",
+        "uso": "Separar ventas al contado de créditos",
+        "valores": ["'contado'", "'credito'"],
+        "indexado": true
+      },
+      {
+        "campo": "venta.origen",
+        "uso": "Distinguir canal de venta",
+        "valores": ["'tienda'", "'ecommerce'"],
+        "indexado": true
+      },
+      {
+        "campo": "usuario.rol",
+        "uso": "Filtrar usuarios por tipo",
+        "valores": ["'cliente'", "'vendedor'", "'admin'"],
+        "indexado": true
+      },
+      {
+        "campo": "cuota.estado",
+        "uso": "Identificar cuotas pendientes o vencidas",
+        "valores": ["'pendiente'", "'pagada'", "'vencida'"],
+        "indexado": true
+      },
+      {
+        "campo": "variante.stock",
+        "uso": "Detectar productos con stock bajo",
+        "comparación": "stock <= stock_minimo",
+        "indexado": true
+      }
+    ],
+    "joins_recomendados": [
+      {
+        "join": "venta_venta → usuarios_usuario (cliente)",
+        "sql": "JOIN usuarios_usuario ON venta_venta.cliente_id = usuarios_usuario.id",
+        "uso": "Obtener datos del cliente en ventas",
+        "nota": "Usar LEFT JOIN porque cliente_id puede ser NULL"
+      },
+      {
+        "join": "venta_venta → usuarios_usuario (vendedor)",
+        "sql": "JOIN usuarios_usuario ON venta_venta.vendedor_id = usuarios_usuario.id",
+        "uso": "Obtener datos del vendedor en ventas",
+        "nota": "Usar LEFT JOIN porque vendedor_id puede ser NULL en ventas de e-commerce"
+      },
+      {
+        "join": "venta_venta → venta_detalleventa",
+        "sql": "JOIN venta_detalleventa ON venta_venta.id = venta_detalleventa.venta_id",
+        "uso": "Obtener líneas de productos de una venta"
+      },
+      {
+        "join": "venta_detalleventa → producto_variante_varianteproducto → productos_producto",
+        "sql": "JOIN producto_variante_varianteproducto ON venta_detalleventa.variante_producto_id = producto_variante_varianteproducto.id JOIN productos_producto ON producto_variante_varianteproducto.producto_id = productos_producto.id",
+        "uso": "Obtener información completa del producto vendido"
+      },
+      {
+        "join": "venta_venta → cuota_cuotacredito",
+        "sql": "LEFT JOIN cuota_cuotacredito ON venta_venta.id = cuota_cuotacredito.venta_id",
+        "uso": "Obtener cuotas de una venta a crédito",
+        "nota": "Solo aplicable cuando tipo_venta='credito'"
+      },
+      {
+        "join": "productos_producto → categorias_categoria",
+        "sql": "JOIN categorias_categoria ON productos_producto.categoria_id = categorias_categoria.id",
+        "uso": "Filtrar o agrupar productos por categoría"
+      }
+    ],
+    "campos_evitar_consultas_default": [
+      "password",
+      "last_login",
+      "is_superuser",
+      "is_staff",
+      "user_permissions",
+      "groups",
+      "session_data",
+      "token",
+      "jti"
+    ],
+    "consideraciones_especiales": [
+      {
+        "tema": "Ventas sin usuario registrado",
+        "detalle": "Las ventas pueden tener cliente_id NULL. En estos casos, usar los campos desnormalizados: nombre_cliente, correo_cliente, telefono_cliente."
+      },
+      {
+        "tema": "Ventas de e-commerce",
+        "detalle": "Las ventas con origen='ecommerce' pueden no tener vendedor_id. Usar nombre_vendedor si es necesario mostrar esta información."
+      },
+      {
+        "tema": "Cálculo de deuda",
+        "detalle": "Para calcular el saldo pendiente de una venta a crédito, sumar las cuotas con estado!='pagada' o restar los pagos del total_con_interes."
+      },
+      {
+        "tema": "Stock bajo",
+        "detalle": "Comparar variante.stock con variante.stock_minimo para alertas de reposición."
+      },
+      {
+        "tema": "Cuotas vencidas",
+        "detalle": "Una cuota está vencida si estado='pendiente' AND fecha_vencimiento < CURRENT_DATE."
+      },
+      {
+        "tema": "Datos desnormalizados",
+        "detalle": "Los campos nombre_producto y talla en detalle_venta son copias para preservar el histórico, aunque la variante cambie."
+      },
+      {
+        "tema": "Timezone",
+        "detalle": "El sistema usa timezone 'America/La_Paz' (UTC-4). Las fechas están almacenadas con este timezone."
+      },
+      {
+        "tema": "Intereses",
+        "detalle": "Para ventas a crédito, total_con_interes = total * (1 + interes/100). El interés está en porcentaje."
+      }
+    ],
+    "ejemplos_lenguaje_natural": [
+      {
+        "pregunta": "¿Cuánto vendimos este mes?",
+        "sql_generado": "SELECT SUM(total_con_interes) FROM venta_venta WHERE fecha >= DATE_TRUNC('month', CURRENT_DATE);",
+        "explicación": "Filtrar por fecha del mes actual y sumar el total con intereses"
+      },
+      {
+        "pregunta": "Productos con stock bajo",
+        "sql_generado": "SELECT p.nombre, vp.talla, vp.stock FROM producto_variante_varianteproducto vp JOIN productos_producto p ON vp.producto_id = p.id WHERE vp.stock <= vp.stock_minimo;",
+        "explicación": "Comparar stock actual con stock mínimo definido"
+      },
+      {
+        "pregunta": "Clientes nuevos del último trimestre",
+        "sql_generado": "SELECT username, email, date_joined FROM usuarios_usuario WHERE rol='cliente' AND date_joined >= CURRENT_DATE - INTERVAL '3 months';",
+        "explicación": "Filtrar usuarios con rol cliente registrados en los últimos 3 meses"
+      },
+      {
+        "pregunta": "Ventas pendientes de pago",
+        "sql_generado": "SELECT * FROM venta_venta WHERE estado='pendiente';",
+        "explicación": "Filtrar ventas por estado pendiente"
+      },
+      {
+        "pregunta": "Top 5 vendedores del año",
+        "sql_generado": "SELECT u.username, COUNT(v.id) AS ventas, SUM(v.total) AS total FROM venta_venta v JOIN usuarios_usuario u ON v.vendedor_id = u.id WHERE EXTRACT(YEAR FROM v.fecha) = EXTRACT(YEAR FROM CURRENT_DATE) GROUP BY u.id, u.username ORDER BY total DESC LIMIT 5;",
+        "explicación": "Agrupar ventas por vendedor del año actual y ordenar por total descendente"
+      },
+      {
+        "pregunta": "Cuotas que vencen esta semana",
+        "sql_generado": "SELECT * FROM cuota_cuotacredito WHERE estado='pendiente' AND fecha_vencimiento BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days';",
+        "explicación": "Filtrar cuotas pendientes con fecha de vencimiento en los próximos 7 días"
+      },
+      {
+        "pregunta": "Ingresos por método de pago",
+        "sql_generado": "SELECT metodo_pago, SUM(monto_pagado) AS total FROM pago_pago GROUP BY metodo_pago;",
+        "explicación": "Agrupar pagos por método y sumar montos"
+      }
+    ],
+    "optimizaciones_consulta": [
+      "Usar índices en campos de fecha (fecha, fecha_vencimiento, fecha_pago) para consultas temporales",
+      "Aprovechar índices en foreign keys para joins eficientes",
+      "Para consultas de agregación grandes, considerar agregar WHERE para limitar el dataset",
+      "Usar LEFT JOIN cuando cliente_id o vendedor_id puedan ser NULL",
+      "Para reportes, preferir GROUP BY con agregaciones en lugar de múltiples consultas",
+      "Evitar SELECT * cuando solo se necesitan campos específicos",
+      "Usar LIMIT para consultas de exploración o tops",
+      "Para análisis de rango de fechas, usar índices en venta.fecha"
+    ],
+    "validaciones_negocio": [
+      "Una venta con tipo_venta='credito' debe tener plazo_meses e interes definidos",
+      "Las cuotas solo existen para ventas con tipo_venta='credito'",
+      "El stock nunca puede ser negativo (validado con check constraint)",
+      "Los roles válidos son: 'cliente', 'vendedor', 'admin'",
+      "Los estados de cuota son: 'pendiente', 'pagada', 'vencida'",
+      "Los métodos de pago son: 'efectivo', 'tarjeta', 'qr'",
+      "Los orígenes de venta son: 'tienda', 'ecommerce'",
+      "total_con_interes >= total (nunca puede ser menor)"
+    ]
+  }
+}

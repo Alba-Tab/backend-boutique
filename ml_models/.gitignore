@@ -1,0 +1,5 @@
+# Ignorar modelos entrenados (son archivos grandes)
+*.pkl
+
+# Pero mantener el directorio
+!.gitkeep

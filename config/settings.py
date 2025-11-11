@@ -80,6 +80,7 @@ INSTALLED_APPS = [
     'apps.pago',
     'apps.venta',
     'apps.reports',
+    'apps.ia',
 ]
 
 MIDDLEWARE = [
@@ -173,7 +174,7 @@ print(f"🧪 BEFORE OVERRIDE: {default_storage.__class__.__name__}")
 
 # Reemplazar default_storage si no es S3
 if not isinstance(default_storage, S3Boto3Storage):
-    default_storage._wrapped = S3Boto3Storage()
+    default_storage._wrapped = S3Boto3Storage() # type: ignore
 
 print(f"🧪 AFTER OVERRIDE: {default_storage.__class__.__name__}")
 
